@@ -1,0 +1,180 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #8c8cbe;
+  color: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+
+/* Styl przycisków */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 3px solid #9ef2ccaa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.custom-button {
+  background-color: #29845baa;
+  padding: 10px 20px;
+  border-color: #ffffff;
+  border-radius: 5px;
+  cursor: pointer;
+  width:100%;
+  transition: background-color 0.3s ease;
+}
+
+body.dark .custom-button{
+  background-color: #2130b0;
+  padding: 10px 20px;
+  border-color: #c3c6e6;
+  border-radius: 5px;
+  cursor: pointer;
+  width:100%;
+  transition: background-color 0.3s ease;
+}
+
+body.dark .button-container {
+  display: flex;
+    justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 3px solid #64d3ffaa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+
+body.dark .custom-button:hover {
+  background-color: #5e6be0;
+}
+
+body.dark .player-wrapper {
+  position: relative;
+  padding: 20px;
+  border: 2px solid #64d3ffaa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.custom-button:hover {
+  background-color: #85deb6aa;
+}
+
+.player-wrapper {
+  position: relative;
+  padding: 20px;
+  border: 2px solid #9ef2ccaa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px; 
+  width: 100%;
+}
+
+.player-all {
+  display: grid;
+  gap: 20px; 
+}
+
+.react-player {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.like-unlike-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex: auto;
+  align-items: center;
+}
+
+.menulink{
+  color: #1a121baa;
+  font-weight: bold;
+}
+
+body.dark .menulink{
+  color: #95b9fdaa;
+}
+
+.login-color{
+  background-color: #481362aa;
+}
+
+body.dark .login-color{
+  background-color: #0e0a31;
+}
+
+.login-box{
+  background-color: #410d5eaa;
+  border: 2px solid #e0b9ed;
+}
+
+body.dark .login-box{
+  background-color: #241f56;
+  border: 2px solid #beb9ed;
+}
+
+.log-in{
+  background-color: #250337aa;
+}
+
+body.dark .log-in{
+  background-color: #8db3e9aa;
+}
+
+
+.input-color{
+  background-color: #b48fc0;
+}
+
+body.dark .input-color{
+  background-color: #9bc6f2;
+}

@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: 
+      context: ./server
+      dockerfile: ./Dockerfile
+    container_name: backend
+    ports:
+      - "5000:5000"
+  frontend:
+    depends_on:
+      - backend
+    build: 
+      context: ./player
+      dockerfile: ./Dockerfile
+    container_name: frontend
+    ports:
+      - "5173:5173"
