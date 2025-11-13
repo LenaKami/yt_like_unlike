@@ -5,6 +5,7 @@ import { HomePage } from './Pages/HomePage'
 import { RegistrationFormPage } from './Pages/RegistrationFormPage'
 import {AddPlayerPage} from "./Pages/AddPlayerYTPage";
 import { UpdatePlayerPage } from "./Pages/UpdatePlayerPage";
+import {FilePage} from "./Pages/FilePage";
 
 export const routes = {
   HOME: {
@@ -25,6 +26,9 @@ export const routes = {
   },
   UPDATEPLAYER: {
     path: "/update/:id",
+  },
+  FILE: {
+    path: "/file",
   },
 };
 
@@ -56,6 +60,10 @@ export const router = createBrowserRouter([
       {
         path: routes.UPDATEPLAYER.path,
         element: < UpdatePlayerPage/>,
+      },
+      {
+        path: routes.FILE.path,
+        element: <FilePage />,
       },
     ],
   },
