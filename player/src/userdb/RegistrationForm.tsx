@@ -5,6 +5,7 @@ import { type RegistrationFormData, validationSchema } from "./types_register";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { WaNavLink } from "../onkrzyczy";
 import { routes } from "../routes";
+import logo from "../assets/logo.svg"
 
 export const RegistrationForm = () => {
   const classinput =
@@ -49,9 +50,10 @@ export const RegistrationForm = () => {
   return (
     <div>
       <section className="login-color">
-        <div className="flex flex-col items-center justify-center px-12 py-8 mx-auto md:h-screen lg:py-0">
+        <div className="flex flex-col items-center justify-center px-12 py-8 mx-auto
+                md:justify-start md:h-auto lg:py-12">
           <a href="#" className="flex items-center mb-6 text-2xl font-semibold text-white">
-            <img className="w-8 h-8 mr-2" src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/logo.svg" alt="logo" />
+            <img className="w-10 h-10" src={logo} alt="logo" />
             StudyBeats
           </a>
           <div className="w-full rounded-lg shadow md:mt-0 sm:max-w-md xl:p-0 login-box">
@@ -70,16 +72,27 @@ export const RegistrationForm = () => {
                   <Input label="Password" {...register("password", { required: true })} type="password" error={errors.password} inputClassName={classinput} labelClassName={classlabel} />
                 </div>
                 <div className="relative mb-4">
-                  <label htmlFor="image" className={classlabel}>Profile Image</label>
-                  <input
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600"
-                  />
-                  {selectedImage && <p className="text-sm text-white mt-2">Selected image: {selectedImage.name}</p>}
-                </div>
+                <input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="file-input"
+                />
+                <label
+                  htmlFor="image"
+                  className="file-label"
+                >
+                  Wybierz zdjęcie
+                </label>
+
+                {selectedImage && (
+                  <p className="file-name">
+                    Wybrano: {selectedImage.name}
+                  </p>
+                )}
+              </div>
+
 
                 <p className="text-sm font-light text-gray-500 dark:text-white">
                   Already have an account? <WaNavLink to={routes.LOGINFORM.path}>Sign up</WaNavLink>

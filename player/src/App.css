@@ -38,7 +38,7 @@
 body {
   font-family: Arial, sans-serif;
   background-color: #8c8cbe;
-  color: #ffffff;
+  color: #f1f1f1;
   margin: 0;
   padding: 0;
 }
@@ -57,7 +57,7 @@ body {
 .custom-button {
   background-color: #29845baa;
   padding: 10px 20px;
-  border-color: #ffffff;
+  border-color: #f1f1f1;
   border-radius: 5px;
   cursor: pointer;
   width:100%;
@@ -136,45 +136,85 @@ body.dark .player-wrapper {
 }
 
 .menulink{
-  color: #1a121baa;
+  color: #E57C9A;
   font-weight: bold;
 }
 
-body.dark .menulink{
-  color: #95b9fdaa;
-}
 
 .login-color{
-  background-color: #481362aa;
+  background-color: #F8F8FA;
 }
 
 body.dark .login-color{
-  background-color: #0e0a31;
+  background-color: #1F1D2B;
 }
 
 .login-box{
-  background-color: #410d5eaa;
-  border: 2px solid #e0b9ed;
+  background-color: #FFFFFF;
+  border: 1px solid #FEC260;
+  border-radius: 36px !important;
 }
 
 body.dark .login-box{
-  background-color: #241f56;
-  border: 2px solid #beb9ed;
+  background-color: #2B2A3C;
+  border: 1px solid #FEC260;
+  border-radius: 36px;
 }
 
 .log-in{
-  background-color: #250337aa;
-}
-
-body.dark .log-in{
-  background-color: #8db3e9aa;
+  background-color: #FEC260;
+  border: 1px solid #E57C9A;
+  border-radius: 36px;
+  color: #2B2A3C;
 }
 
 
 .input-color{
-  background-color: #b48fc0;
+  background-color: #F8F8FA;
+  border: 1px solid #FEC260;
+  border-radius: 18px !important;
 }
 
 body.dark .input-color{
-  background-color: #9bc6f2;
+  background-color: #1F1D2B;
+  border: 1px solid #FEC260;
+  border-radius: 18px;
+}
+
+.file-input {
+  display: none; /* ukrywamy brzydala */
+}
+
+.file-label {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #E57C9A;
+  color: white;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  transition: background-color 0.3s, transform 0.1s;
+}
+
+.file-label:hover {
+  background-color: #FEC260;
+}
+
+.file-label:active {
+  transform: scale(0.97);
+}
+
+.file-name {
+  font-size: 14px;
+  color: #E57C9A;
+}
+
+.text-white {
+  color: #1F1D2B!important;
+}
+
+body.dark .text-white {
+  color: #f1f1f1 !important;
 }
