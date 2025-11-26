@@ -16,6 +16,12 @@ import { useAuthContext } from "./Auth/AuthContext";
             <li className="mr-2">
               <WaNavLink to={routes.FILE.path}>Materiały</WaNavLink>
             </li>
+            <li className="mr-2">
+              <WaNavLink to={routes.PLAN.path}>Plan nauki</WaNavLink>
+            </li>
+            <li className="mr-2">
+              <WaNavLink to={routes.FRIENDS.path}>Znajomi</WaNavLink>
+            </li>
         {!isLoggedIn ? (<>
             <li className="mr-2">
               <WaNavLink to={routes.REGISTRATIONFORM.path}>Registration</WaNavLink>

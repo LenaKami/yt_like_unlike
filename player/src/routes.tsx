@@ -6,6 +6,8 @@ import { RegistrationFormPage } from './Pages/RegistrationFormPage'
 import {AddPlayerPage} from "./Pages/AddPlayerYTPage";
 import { UpdatePlayerPage } from "./Pages/UpdatePlayerPage";
 import {FilePage} from "./Pages/FilePage";
+import { PlanNaukiPage } from './Pages/PlanNaukiPage';
+import { FriendsPage } from './Pages/FriendsPage';
 
 export const routes = {
   HOME: {
@@ -29,6 +31,12 @@ export const routes = {
   },
   FILE: {
     path: "/file",
+  },
+  PLAN: {
+    path: "/plan",
+  },
+  FRIENDS: {
+    path: "/friends",
   },
 };
 
@@ -60,6 +68,14 @@ export const router = createBrowserRouter([
       {
         path: routes.UPDATEPLAYER.path,
         element: < UpdatePlayerPage/>,
+      },
+      {
+        path: routes.PLAN.path,
+        element: <PlanNaukiPage />,
+      },
+      {
+        path: routes.FRIENDS.path,
+        element: <FriendsPage />,
       },
       {
         path: routes.FILE.path,
