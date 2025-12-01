@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const db = require("./database/db.js");
 var playerRouter = require("./routes/PlayerRoute.js");
 var fileRouter = require("./routes/FileRouter.js");
+var friendRouter = require("./routes/FriendRouter.js");
 const multer = require("multer");
 const fs = require("fs");
 
@@ -48,6 +49,7 @@ app.use(
 
 app.use("/player", playerRouter);
 app.use("/file", fileRouter);
+app.use("/friend", friendRouter);
 
 // ============================
 // 📌 Rejestracja użytkownika

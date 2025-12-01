@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS Files (
   filename VARCHAR(255) NOT NULL,
   category VARCHAR(100) NOT NULL,
   filepath VARCHAR(255) NOT NULL,
-  shared BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 `;
@@ -41,10 +40,10 @@ db.promise()
 
 // 🔹 Dodawanie pliku
 module.exports.addFile = [
-  upload.any(), // akceptujemy wszystkie pliki
+  upload.any(),
   async (req, res) => {
     const { username, category } = req.body;
-    const file = req.files && req.files[0]; // bierzemy pierwszy plik, jeśli jest
+    const file = req.files && req.files[0];
 
     if (!file) {
       return res
@@ -85,12 +84,14 @@ module.exports.getUserFiles = async (req, res) => {
   }
 };
 
-// 🔹 Pobieranie plików udostępnionych (shared = true)
+// 🔹 Pobieranie plików udostępnionych wszystkim (niezależnie od znajomych)
 module.exports.getSharedFiles = async (req, res) => {
   try {
-    const [rows] = await db
-      .promise()
-      .query("SELECT * FROM Files WHERE shared = true");
+    const [rows] = await db.promise().query(
+      `SELECT DISTINCT f.* 
+         FROM Files f 
+         JOIN FileShares fs ON f.id = fs.file_id`
+    );
     res.status(200).json({ status: 200, data: rows });
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });
@@ -99,8 +100,7 @@ module.exports.getSharedFiles = async (req, res) => {
 
 // 🔹 Usuwanie pliku
 module.exports.deleteFile = async (req, res) => {
-  const { id } = req.params;
-  const { username } = req.body;
+  const { id, username } = req.params;
 
   try {
     const [rows] = await db
@@ -121,46 +121,13 @@ module.exports.deleteFile = async (req, res) => {
 
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
+    // Usuwanie powiązanych udostępnień
+    await db.promise().query("DELETE FROM FileShares WHERE file_id = ?", [id]);
+
     await db.promise().query("DELETE FROM Files WHERE id = ?", [id]);
     res
       .status(200)
       .json({ status: 200, message: "🗑️ Plik usunięty pomyślnie" });
-  } catch (err) {
-    res.status(400).json({ status: 400, message: err.message });
-  }
-};
-
-// 🔹 Udostępnianie / cofanie udostępnienia
-module.exports.toggleShareFile = async (req, res) => {
-  const { id } = req.params;
-  const { username } = req.body;
-
-  try {
-    const [rows] = await db
-      .promise()
-      .query("SELECT * FROM Files WHERE id = ? AND username = ?", [
-        id,
-        username,
-      ]);
-    if (rows.length === 0) {
-      return res.status(404).json({
-        status: 404,
-        message: "Plik nie istnieje lub nie należy do Ciebie",
-      });
-    }
-
-    const current = rows[0].shared;
-    const newStatus = !current;
-
-    await db
-      .promise()
-      .query("UPDATE Files SET shared = ? WHERE id = ?", [newStatus, id]);
-    res.status(200).json({
-      status: 200,
-      message: newStatus
-        ? "🔗 Plik został udostępniony"
-        : "🚫 Plik przestał być udostępniany",
-    });
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });
   }
