@@ -44,7 +44,7 @@ module.exports.addFriend = async (req, res) => {
   }
 
   try {
-    // 🔹 Sprawdzenie czy friend_username istnieje w Users
+    // 🔹 Sprawdzenie czy friend_username istnieje
     const [userCheck] = await db
       .promise()
       .query("SELECT * FROM Users WHERE login = ?", [friend_username]);
@@ -55,13 +55,14 @@ module.exports.addFriend = async (req, res) => {
         .json({ status: 404, message: "Użytkownik nie istnieje" });
     }
 
-    // 🔹 Funkcja pomocnicza: dodaje do listy JSON i tworzy wiersz jeśli brak
+    // 🔹 Helper: Dodaje friend do listy usera
     const addToFriends = async (user, friend) => {
       const [rows] = await db
         .promise()
-        .query("SELECT * FROM Friends WHERE username = ?", [user]);
+        .query("SELECT friends FROM Friends WHERE username = ?", [user]);
 
       if (rows.length === 0) {
+        // 🆕 Brak znajomych → Tworzymy wpis z 1 znajomym
         await db
           .promise()
           .query("INSERT INTO Friends (username, friends) VALUES (?, ?)", [
@@ -69,26 +70,29 @@ module.exports.addFriend = async (req, res) => {
             JSON.stringify([friend]),
           ]);
       } else {
-        const currentFriends = JSON.parse(rows[0].friends || "[]");
-        if (!currentFriends.includes(friend)) {
-          currentFriends.push(friend);
+        // 🔄 Są znajomi → Dopisujemy kolejnego
+        const list = JSON.parse(rows[0].friends || "[]").map((f) => f.trim());
+
+        if (!list.includes(friend)) {
+          list.push(friend);
+
           await db
             .promise()
             .query("UPDATE Friends SET friends = ? WHERE username = ?", [
-              JSON.stringify(currentFriends),
+              JSON.stringify(list),
               user,
             ]);
         }
       }
     };
 
-    // 🔹 Dodaj symetrycznie: username ↔ friend_username
+    // 🔹 Dodaj znajomość symetrycznie
     await addToFriends(username, friend_username);
     await addToFriends(friend_username, username);
 
     res.status(200).json({
       status: 200,
-      message: `✅ Znajomość między ${username} a ${friend_username} dodana pomyślnie`,
+      message: `🤝 Dodano znajomych: ${username} ⇄ ${friend_username}`,
     });
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });
@@ -153,11 +157,9 @@ module.exports.removeFriend = async (req, res) => {
 };
 
 // 🔹 Udostępnianie pliku znajomemu
-// 🔹 Udostępnianie pliku znajomemu (tylko znajomemu)
-module.exports.shareFileWithFriend = async (req, res) => {
-  const { file_id, shared_with } = req.body;
-  const { username } = req.params; // właściciel pliku
-  console.log(username);
+module.exports.shareFileWithFriends = async (req, res) => {
+  const { file_id } = req.body;
+  const { username } = req.params;
 
   try {
     // 🔹 Sprawdzenie czy plik istnieje i należy do username
@@ -175,51 +177,53 @@ module.exports.shareFileWithFriend = async (req, res) => {
       });
     }
 
-    // 🔹 Sprawdzenie czy shared_with jest znajomym
+    // 🔹 Pobranie wszystkich znajomych
     const [friendRows] = await db
       .promise()
       .query("SELECT friends FROM Friends WHERE username = ?", [username]);
 
-    console.log(friendRows);
-
     const friends =
-      friendRows.length > 0 ? JSON.parse(friendRows[0].friends || "[]") : [];
+      friendRows.length > 0
+        ? JSON.parse(friendRows[0].friends || "[]").map((f) => f.trim())
+        : [];
 
-    console.log(friends);
-
-    if (!friends.includes(shared_with)) {
+    if (friends.length === 0) {
       return res.status(400).json({
         status: 400,
-        message: "Plik można udostępnić tylko znajomemu",
+        message: "Nie masz żadnych znajomych do udostępnienia pliku.",
       });
     }
 
-    // 🔹 Sprawdzenie czy już udostępniono
-    const [shares] = await db
+    // 🔹 Pobranie istniejących udostępnień
+    const [existingShares] = await db
       .promise()
-      .query("SELECT * FROM FileShares WHERE file_id = ? AND shared_with = ?", [
-        file_id,
-        shared_with,
-      ]);
+      .query("SELECT shared_with FROM FileShares WHERE file_id = ?", [file_id]);
 
-    if (shares.length > 0) {
+    const alreadyShared = existingShares.map((s) => s.shared_with);
+
+    const newShared = friends.filter((f) => !alreadyShared.includes(f));
+
+    // 🔹 Jeśli wszystkim już udostępniono
+    if (newShared.length === 0) {
       return res.status(400).json({
         status: 400,
-        message: "Plik już udostępniony temu znajomemu",
+        message: "Plik jest już udostępniony wszystkim znajomym.",
       });
     }
 
-    // 🔹 Dodanie wpisu w FileShares
+    // 🔹 Dodanie wpisów dla wszystkich nowych znajomych
+    const insertValues = newShared.map((friend) => [file_id, friend]);
+
     await db
       .promise()
-      .query("INSERT INTO FileShares (file_id, shared_with) VALUES (?, ?)", [
-        file_id,
-        shared_with,
+      .query("INSERT INTO FileShares (file_id, shared_with) VALUES ?", [
+        insertValues,
       ]);
 
     res.status(200).json({
       status: 200,
-      message: `🔗 Plik udostępniony użytkownikowi ${shared_with}`,
+      message: "Plik udostępniony następującym znajomym:",
+      shared_to: newShared,
     });
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });
@@ -227,20 +231,47 @@ module.exports.shareFileWithFriend = async (req, res) => {
 };
 
 // 🔹 Cofanie udostępnienia
-module.exports.unshareFileWithFriend = async (req, res) => {
-  const { file_id, shared_with } = req.body;
+module.exports.unshareFileWithFriends = async (req, res) => {
+  const { file_id } = req.body;
+  const { username } = req.params;
 
   try {
+    const [files] = await db
+      .promise()
+      .query("SELECT * FROM Files WHERE id = ? AND username = ?", [
+        file_id,
+        username,
+      ]);
+
+    if (files.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: "Plik nie istnieje lub nie należy do Ciebie",
+      });
+    }
+    // 🔹 Pobranie listy użytkowników, którym plik był udostępniony
+    const [sharedRows] = await db
+      .promise()
+      .query("SELECT shared_with FROM FileShares WHERE file_id = ?", [file_id]);
+
+    if (sharedRows.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Ten plik nie był udostępniony żadnemu znajomemu.",
+      });
+    }
+
+    const sharedTo = sharedRows.map((row) => row.shared_with);
+
+    // 🔹 Usunięcie WSZYSTKICH udostępnień tego pliku
     await db
       .promise()
-      .query("DELETE FROM FileShares WHERE file_id = ? AND shared_with = ?", [
-        file_id,
-        shared_with,
-      ]);
+      .query("DELETE FROM FileShares WHERE file_id = ?", [file_id]);
 
     res.status(200).json({
       status: 200,
-      message: `🚫 Plik przestał być udostępniany użytkownikowi ${shared_with}`,
+      message: "❌ Udostępnienie cofnięte wszystkim znajomym.",
+      unshared_from: sharedTo,
     });
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });

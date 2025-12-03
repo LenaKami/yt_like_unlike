@@ -9,10 +9,10 @@ router.post("/add", FriendController.addFriend);
 router.get("/:username", FriendController.getFriends);
 
 // Udostępnianie pliku znajomemu
-router.post("/share/:username", FriendController.shareFileWithFriend);
+router.post("/share/:username", FriendController.shareFileWithFriends);
 
 // Cofanie udostępnienia
-router.post("/unshare", FriendController.unshareFileWithFriend);
+router.post("/unshare/:username", FriendController.unshareFileWithFriends);
 
 // Pobieranie plików udostępnionych danemu użytkownikowi
 router.get("/files/:username", FriendController.getFilesSharedWithUser);
