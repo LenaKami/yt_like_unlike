@@ -10,6 +10,8 @@ type Friend = {
 const STORAGE_KEY = 'friendsList';
 
 export const FriendsPage = () => {
+  const classinput = "input-color border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
+  const classlabel = "block mb-2 text-sm font-medium text-white"
   const [friends, setFriends] = useState<Friend[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState('');
@@ -52,15 +54,15 @@ export const FriendsPage = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex items-center justify-between mb-4">
+    <div className="login-box container mx-auto p-4">
+      <div className=" flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Znajomi</h1>
         <div className="flex items-center space-x-2">
-          <button onClick={() => setShowModal(true)} className="px-3 py-1 bg-blue-600 text-white rounded">Dodaj</button>
+          <button onClick={() => setShowModal(true)} className="px-3 py-1 log-in">Dodaj</button>
         </div>
       </div>
 
-      <section className="bg-white dark:bg-slate-800 p-4 rounded shadow">
+      <section className=" p-4 shadow">
         {friends.length === 0 ? (
           <p className="text-slate-700 dark:text-slate-300">Brak znajomych. Dodaj nowego.</p>
         ) : (
@@ -85,14 +87,14 @@ export const FriendsPage = () => {
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-50" onClick={() => setShowModal(false)} />
-          <div className="bg-white dark:bg-slate-800 p-6 rounded shadow z-10 w-full max-w-md">
+          <div className="login-box p-6 rounded shadow z-10 w-full max-w-md">
             <h2 className="text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">Dodaj znajomego</h2>
             <div>
-              <Input label="Imię i nazwisko" value={name} onChange={(e) => setName(e.target.value)} inputClassName="w-full p-2 border rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100" />
-            </div>
+              <Input label="Imię i nazwisko" value={name} onChange={(e) => setName(e.target.value)} inputClassName={classinput} labelClassName={classlabel}/>
+             </div>
             <div className="mt-4 flex justify-end space-x-2">
-              <button onClick={() => setShowModal(false)} className="px-3 py-1 border rounded">Anuluj</button>
-              <button onClick={addFriend} className="px-3 py-1 bg-blue-600 text-white rounded">Dodaj</button>
+              <button onClick={() => setShowModal(false)} className="px-3 py-1 border ">Anuluj</button>
+              <button onClick={addFriend} className="px-3 py-1 log-in ">Dodaj</button>
             </div>
           </div>
         </div>

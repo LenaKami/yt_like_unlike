@@ -10,15 +10,15 @@ import { PlanNaukiPage } from './Pages/PlanNaukiPage';
 import { FriendsPage } from './Pages/FriendsPage';
 
 export const routes = {
-  HOME: {
+  REGISTRATIONFORM: {
     path: "/",
     // title:
   },
   /*DATAFETCHER: {
     path: "/counter",
   },*/
-  REGISTRATIONFORM: {
-    path: "/generator",
+  HOME: {
+    path: "/home",
   },
   LOGINFORM: {
     path: "/registration",
@@ -42,7 +42,7 @@ export const routes = {
 
 export const router = createBrowserRouter([
   {
-    path: routes.HOME.path,
+    path: routes.REGISTRATIONFORM.path,
     element: <Layout />,
     children: [
       {
