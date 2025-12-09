@@ -20,8 +20,7 @@ export const Layout = () => {
       <div className="flex w-[1000px] h-[600px] bg-gray-800 shadow-lg rounded-2xl overflow-hidden">
         
         {/* 4. Renderuj Menu tylko jeśli showMenu jest true */}
-        {/*showMenu && <Menu />*/}
-        <Menu />
+        {showMenu && <Menu />}
         {/* Jeśli menu znika, main zajmie 100% szerokości dzięki flex-1 */}
         <main className="flex-1 login-color p-6 overflow-y-auto relative flex flex-col">
           <Outlet />

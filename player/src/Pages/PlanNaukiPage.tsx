@@ -9,6 +9,7 @@ type Task = {
   start: string; // hh:mm
   end: string; // hh:mm
   playlist: string;
+  active?: boolean;
 };
 
 export const PlanNaukiPage = () => {
@@ -24,7 +25,12 @@ export const PlanNaukiPage = () => {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('studyPlanTasks');
-      if (raw) setTasks(JSON.parse(raw));
+      if (raw) {
+        const parsed: Task[] = JSON.parse(raw);
+        const normalized = parsed.map((t) => ({ ...t, active: t.active ?? true }));
+        normalized.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+        setTasks(normalized);
+      }
     } catch (e) {
       console.error('Failed to read tasks from storage', e);
     }
@@ -56,13 +62,26 @@ export const PlanNaukiPage = () => {
       start,
       end,
       playlist,
+      active: true,
     };
-    setTasks((s) => [...s, newTask].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)));
+    setTasks((s) => {
+      const next = [...s, newTask].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+      try { window.dispatchEvent(new Event('tasks-updated')); } catch (e) {}
+      return next;
+    });
     clearForm();
   };
 
   const removeTask = (id: string) => {
     setTasks((s) => s.filter((t) => t.id !== id));
+  };
+
+  const toggleActive = (id: string) => {
+    setTasks((s) => {
+      const next = s.map((t) => (t.id === id ? { ...t, active: !t.active } : t));
+      try { window.dispatchEvent(new Event('tasks-updated')); } catch (e) {}
+      return next;
+    });
   };
 
   return (
@@ -134,23 +153,15 @@ export const PlanNaukiPage = () => {
 
         <section className="login-box  p-4 rounded shadow">
           <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nadchodzące zadania</h2>
-          <li className="p-3 border rounded flex justify-between items-start">
-                  <div>
-                    <div className="font-semibold text-slate-900 dark:text-slate-100">assdfg</div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300">20.10.2002 • 12.33 - 3.24 • playlist1</div>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <button  className="text-sm log-in">Usuń</button>
-                  </div>
-                </li>
           {tasks.length === 0 ? (
             <Text>Brak zaplanowanych zadań.</Text>
           ) : (
             <ul className="space-y-3">
               {tasks.map((t) => (
-                <li key={t.id} className="p-3 border rounded flex justify-between items-start">
-                  <div>
-                    <div className="font-semibold text-slate-900 dark:text-slate-100">{t.name}</div>
+                <li key={t.id} className={`p-3 border rounded flex items-start bg-slate-50 dark:bg-slate-700 ${t.active === false ? 'opacity-50' : ''}`}>
+                  <input type="checkbox" checked={t.active === false} onChange={() => toggleActive(t.id)} className="mr-3 mt-1" />
+                  <div className="flex-1">
+                    <div className={`font-semibold ${t.active === false ? 'text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>{t.name}</div>
                     <div className="text-sm text-slate-600 dark:text-slate-300">{t.date} • {t.start} - {t.end} • {t.playlist}</div>
                   </div>
                   <div className="flex flex-col items-end">

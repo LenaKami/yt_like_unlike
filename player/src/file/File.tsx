@@ -1,8 +1,6 @@
-import { useState, useEffect, SetStateAction } from 'react';
+import { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useNavigate } from 'react-router-dom';
-import { AddWaNavLink } from '../onkrzycz2';
-import { routes } from '../routes';
 import { useAuthContext } from '../Auth/AuthContext';
 import { HandThumbUpIcon, HandThumbDownIcon } from '@heroicons/react/24/solid';
 
@@ -19,10 +17,10 @@ type PlayerYT = {
 export const File = () => {
   const [players, setPlayers] = useState<PlayerYT[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  // selected category (not used yet)
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const { isLoggedIn, username } = useAuthContext();
+  const { username } = useAuthContext();
 
   useEffect(() => {
     fetchData();

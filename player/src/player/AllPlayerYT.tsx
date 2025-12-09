@@ -1,4 +1,4 @@
-import { useState, useEffect, SetStateAction } from 'react';
+import { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useNavigate } from 'react-router-dom';
 import '../App.css';
@@ -7,7 +7,6 @@ import '../App.css';
 import {AddWaNavLink} from '../onkrzycz2'
 import { routes } from "../routes";
 import { useAuthContext } from "../Auth/AuthContext";
-import {HandThumbUpIcon, HandThumbDownIcon} from '@heroicons/react/24/solid'
 
 type PlayerYT = {
   _id: number,
@@ -27,7 +26,7 @@ export const AllPlayerYT = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
-  const { isLoggedIn,username,isAdmin } = useAuthContext();
+  const { isLoggedIn } = useAuthContext();
 
   useEffect(() => {fetchData();
   }, []);
@@ -67,38 +66,11 @@ export const AllPlayerYT = () => {
     }
 
 
-    const handleCategoryClick = (category: SetStateAction<string>) => {
+    const handleCategoryClick = (category: string) => {
       setSelectedCategory(category);
     };
 
-    const handleOnClickLike = async (like:string, id:number) => {
-        try {
-          const token = localStorage.getItem('jwtToken');
-            if (!token) {
-                throw new Error('JWT token not found in localStorage');
-            }
-          const response = await fetch(`http://localhost:5000/player/${like}/${id}`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({'username' : username}),
-          });
-          const dataa = await response.json();
-          console.log(dataa.data)
-          console.log(username)
-          if (response.ok) {
-            setMessage(`Success: ${dataa.message}`);
-            fetchData()
-          } else {
-            setMessage(`Error: ${dataa.message}`);
-          }
-        } catch (error) {
-          console.error('Error:', error);
-          setMessage(`Error: ${(error as Error).message}`);
-        }
-    };
+    // like handler removed (not used here)
 
     const filteredPlayers = selectedCategory
       ? players.filter(player => player.category === selectedCategory)
@@ -193,9 +165,9 @@ export const AllPlayerYT = () => {
             </div>
             {isLoggedIn ? (<>
           <div className="player-grid">
-            {filteredPlayers.map((player, index) => (
-              <div className="player-wrapper">
-              <div key={index}>
+            {filteredPlayers.map((player) => (
+              <div className="player-wrapper" key={player._id}>
+              <div>
                 <ReactPlayer
                   className="react-player"
                   url={player.linkyt}
@@ -205,7 +177,7 @@ export const AllPlayerYT = () => {
                 />
               </div>
               <button onClick={() => handleOnClickUpdate1(player._id)} className='h-10 w-30 bg-green-500 hover:bg-green-300 mr-2'>Update</button>
-              <button name={player._id} onClick={handleOnClick}  className='h-10 w-30 bg-red-400 hover:bg-red-200'>Delete</button>
+              <button name={String(player._id)} onClick={handleOnClick}  className='h-10 w-30 bg-red-400 hover:bg-red-200'>Delete</button>
               </div>
             ))}
           </div>
