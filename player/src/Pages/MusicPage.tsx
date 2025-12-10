@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { XMarkIcon, PlusIcon, ArrowLeftIcon, MusicalNoteIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { useState, useRef } from 'react';
+import { XMarkIcon, PlusIcon, ArrowLeftIcon, MusicalNoteIcon, TrashIcon, PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import ReactPlayer from 'react-player';
 
 type MusicFolder = {
@@ -21,6 +21,9 @@ export const MusicPage = () => {
   const [newSongName, setNewSongName] = useState('');
   const [newSongUrl, setNewSongUrl] = useState('');
   const [message, setMessage] = useState('');
+  const [currentSong, setCurrentSong] = useState<Song | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const playerRef = useRef<ReactPlayer>(null);
 
   // Mockup folders
   const [folders, setFolders] = useState<MusicFolder[]>([
@@ -77,6 +80,42 @@ export const MusicPage = () => {
     }
   };
 
+  const handlePlaySong = (song: Song) => {
+    if (currentSong?.id === song.id) {
+      setIsPlaying(!isPlaying);
+    } else {
+      setCurrentSong(song);
+      setIsPlaying(true);
+    }
+  };
+
+  const handleTogglePlay = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleStopSong = () => {
+    setCurrentSong(null);
+    setIsPlaying(false);
+  };
+
+  const handleSongEnded = () => {
+    if (!currentSong) return;
+    
+    // Find songs in the same folder
+    const folderSongs = songs.filter(s => s.folderId === currentSong.folderId);
+    const currentIndex = folderSongs.findIndex(s => s.id === currentSong.id);
+    
+    // Play next song if available
+    if (currentIndex < folderSongs.length - 1) {
+      const nextSong = folderSongs[currentIndex + 1];
+      setCurrentSong(nextSong);
+      setIsPlaying(true);
+    } else {
+      // End of playlist
+      setIsPlaying(false);
+    }
+  };
+
   const getYouTubeThumbnail = (url: string) => {
     const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
     return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
@@ -85,50 +124,118 @@ export const MusicPage = () => {
   const currentFolderName = folders.find(f => f.id === selectedFolder)?.name || '';
   const currentFolderSongs = songs.filter(s => s.folderId === selectedFolder);
 
+  // Player component
+  const PlayerBar = () => {
+    if (!currentSong) return null;
+
+    return (
+      <div className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
+        <div className="container mx-auto flex items-center gap-4">
+          {/* Thumbnail */}
+          <div className="w-16 h-16 bg-slate-700 rounded overflow-hidden flex-shrink-0">
+            <img 
+              src={getYouTubeThumbnail(currentSong.youtubeUrl)} 
+              alt={currentSong.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          {/* Song info */}
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-white truncate">{currentSong.name}</h4>
+            <p className="text-sm text-slate-400 truncate">
+              {folders.find(f => f.id === currentSong.folderId)?.name}
+            </p>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleTogglePlay}
+              className="p-3 bg-orange-500 hover:bg-orange-600 rounded-full transition"
+            >
+              {isPlaying ? (
+                <PauseIcon className="w-6 h-6 text-white" />
+              ) : (
+                <PlayIcon className="w-6 h-6 text-white" />
+              )}
+            </button>
+            <button
+              onClick={handleStopSong}
+              className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition"
+            >
+              <XMarkIcon className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+
+        {/* Hidden ReactPlayer for background playback */}
+        <div className="hidden">
+          <ReactPlayer
+            ref={playerRef}
+            url={currentSong.youtubeUrl}
+            playing={isPlaying}
+            controls={false}
+            width="0"
+            height="0"
+            onEnded={handleSongEnded}
+          />
+        </div>
+      </div>
+    );
+  };
+
   if (selectedFolder !== null) {
     // Widok szczegółów folderu z utworami
     return (
-      <div className="login-box container mx-auto p-4">
-        <div className="flex items-center gap-4 mb-4">
-          <button
-            onClick={() => setSelectedFolder(null)}
-            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition"
-          >
-            <ArrowLeftIcon className="w-6 h-6 text-slate-900 dark:text-slate-100" />
-          </button>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{currentFolderName}</h1>
-        </div>
+      <>
+        <div className="login-box container mx-auto p-4 pb-24">
+          <div className="flex items-center gap-4 mb-4">
+            <button
+              onClick={() => setSelectedFolder(null)}
+              className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition"
+            >
+              <ArrowLeftIcon className="w-6 h-6 text-slate-900 dark:text-slate-100" />
+            </button>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{currentFolderName}</h1>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {currentFolderSongs.map((song) => (
-            <div key={song.id} className="login-box p-4 rounded shadow relative">
-              <button
-                onClick={() => handleDeleteSong(song.id)}
-                className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 rounded-lg transition"
-                title="Usuń utwór"
-              >
-                <TrashIcon className="w-4 h-4 text-white" />
-              </button>
-              <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden mb-3">
-                {song.youtubeUrl && (
-                  <img 
-                    src={getYouTubeThumbnail(song.youtubeUrl)} 
-                    alt={song.name}
-                    className="w-full h-full object-cover"
-                  />
-                )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {currentFolderSongs.map((song) => (
+              <div key={song.id} className="login-box p-4 rounded shadow relative">
+                <button
+                  onClick={() => handleDeleteSong(song.id)}
+                  className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 rounded-lg transition z-10"
+                  title="Usuń utwór"
+                >
+                  <TrashIcon className="w-4 h-4 text-white" />
+                </button>
+                <button
+                  onClick={() => handlePlaySong(song)}
+                  className="w-full"
+                >
+                  <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden mb-3 relative group">
+                    {song.youtubeUrl && (
+                      <>
+                        <img 
+                          src={getYouTubeThumbnail(song.youtubeUrl)} 
+                          alt={song.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                          {currentSong?.id === song.id && isPlaying ? (
+                            <PauseIcon className="w-12 h-12 text-white" />
+                          ) : (
+                            <PlayIcon className="w-12 h-12 text-white" />
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 text-left">{song.name}</h3>
+                </button>
               </div>
-              <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">{song.name}</h3>
-              <a 
-                href={song.youtubeUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Odtwórz na YouTube
-              </a>
-            </div>
-          ))}
+            ))}
 
           {/* Kafelek dodawania */}
           <button
@@ -218,16 +325,19 @@ export const MusicPage = () => {
           </div>
         )}
       </div>
+      <PlayerBar />
+      </>
     );
   }
 
   // Główny widok z kafelkami folderów
   return (
-    <div className="login-box container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6 text-slate-900 dark:text-slate-100">Muzyka</h1>
-      
-      <div className="login-box p-6 rounded shadow">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <>
+      <div className="login-box container mx-auto p-4 pb-24">
+        <h1 className="text-2xl font-bold mb-6 text-slate-900 dark:text-slate-100">Muzyka</h1>
+        
+        <div className="login-box p-6 rounded shadow">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {folders.map((folder) => (
             <div key={folder.id} className="relative">
               <button
@@ -267,6 +377,8 @@ export const MusicPage = () => {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+      <PlayerBar />
+    </>
   );
 };
