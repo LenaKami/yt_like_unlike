@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../Auth/AuthContext';
-import { HandThumbUpIcon, HandThumbDownIcon, DocumentIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { HandThumbUpIcon, HandThumbDownIcon, DocumentIcon, PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 
 type PlayerYT = {
   _id: number;
@@ -18,6 +18,13 @@ type Document = {
   id: number;
   name: string;
   uploadDate: string;
+  folderId: number;
+};
+
+type Folder = {
+  id: number;
+  name: string;
+  isExpanded: boolean;
 };
 
 export const File = () => {
@@ -26,16 +33,26 @@ export const File = () => {
   // selected category (not used yet)
   const [message, setMessage] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [newDocName, setNewDocName] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<number>(1);
   const navigate = useNavigate();
   const { username } = useAuthContext();
 
+  // Mockup folders
+  const [folders, setFolders] = useState<Folder[]>([
+    { id: 1, name: 'Matematyka', isExpanded: true },
+    { id: 2, name: 'Fizyka', isExpanded: false },
+  ]);
+
   // Mockup documents - replace with backend data later
   const [documents, setDocuments] = useState<Document[]>([
-    { id: 1, name: 'Notatki z wykładu 1.pdf', uploadDate: '2025-12-01' },
-    { id: 2, name: 'Materiały dodatkowe.docx', uploadDate: '2025-12-05' },
-    { id: 3, name: 'Prezentacja.pptx', uploadDate: '2025-12-08' },
+    { id: 1, name: 'Całki', uploadDate: '2025-12-01', folderId: 1 },
+    { id: 2, name: 'Funkcja kwadratowa', uploadDate: '2025-12-05', folderId: 1 },
+    { id: 3, name: 'Wielomiany', uploadDate: '2025-12-08', folderId: 1 },
+    { id: 4, name: 'Funkcja liniowa', uploadDate: '2025-12-10', folderId: 1 },
   ]);
 
   useEffect(() => {
@@ -99,6 +116,12 @@ export const File = () => {
     setMessage('📥 Pobieranie dokumentu (mockup)...');
   };
 
+  const handleShareDocument = (docId: number, docName: string) => {
+    // Mockup - will be implemented with backend
+    console.log('Sharing document:', docId, docName);
+    setMessage(`🔗 Udostępnianie: ${docName} (mockup)`);
+  };
+
   const handleAddDocument = () => {
     if (!newDocName || !selectedFile) {
       setMessage('❌ Podaj nazwę i wybierz plik');
@@ -109,12 +132,35 @@ export const File = () => {
       id: documents.length + 1,
       name: newDocName,
       uploadDate: new Date().toISOString().split('T')[0],
+      folderId: selectedFolderId,
     };
     setDocuments([...documents, newDoc]);
     setMessage('✅ Dokument dodany (mockup)');
     setShowAddModal(false);
     setNewDocName('');
     setSelectedFile(null);
+  };
+
+  const handleAddFolder = () => {
+    if (!newFolderName) {
+      setMessage('❌ Podaj nazwę folderu');
+      return;
+    }
+    const newFolder: Folder = {
+      id: folders.length + 1,
+      name: newFolderName,
+      isExpanded: true,
+    };
+    setFolders([...folders, newFolder]);
+    setMessage('✅ Folder dodany (mockup)');
+    setShowAddFolderModal(false);
+    setNewFolderName('');
+  };
+
+  const toggleFolder = (folderId: number) => {
+    setFolders(folders.map(f => 
+      f.id === folderId ? { ...f, isExpanded: !f.isExpanded } : f
+    ));
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,154 +171,146 @@ export const File = () => {
 
   if (loading) return <div className="text-center text-white mt-10">Loading...</div>;
 
-  // 🔸 Dla przykładu — rozdzielamy materiały użytkownika i znajomych
-  const myMaterials = players.filter((p) => p.category !== 'RAP'); // przykładowe
-  const friendsMaterials = players.filter((p) => p.category === 'RAP'); // przykładowe
-
   return (
-    <div className="min-h-screen bg-[#0d0d1a] text-white p-8 flex flex-col items-center">
-      <div className="flex flex-col lg:flex-row gap-8 w-full max-w-7xl">
+    <div className="login-box container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4 text-slate-900 dark:text-slate-100">Materiały</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Box 1 - Twoje materiały */}
-        <div className="flex-1 bg-[#1c1c2b] rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold text-yellow-300 mb-4">Materiały</h2>
+        <div className="login-box p-4 rounded shadow">
+          <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Twoje materiały</h2>
           
           {/* Documents Section */}
-          <div className="mb-8">
-            <h3 className="text-lg font-medium text-gray-200 mb-3">Dokumenty</h3>
-            <div className="space-y-2">
-              {documents.map((doc) => (
-                <button
-                  key={doc.id}
-                  onClick={() => handleDownloadDocument(doc.id)}
-                  className="w-full flex items-center gap-3 bg-[#2a2a40] hover:bg-[#353550] p-3 rounded-lg transition group"
-                >
-                  <DocumentIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm text-gray-200 group-hover:text-white">{doc.name}</p>
-                    <p className="text-xs text-gray-500">{doc.uploadDate}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="mt-4 w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 py-3 rounded-lg font-medium transition"
-            >
-              <PlusIcon className="w-5 h-5" />
-              Dodaj materiał
-            </button>
-          </div>
-
-          {/* Video Materials */}
-          <h3 className="text-lg font-medium text-gray-200 mb-3">Materiały wideo</h3>
-          {myMaterials.length === 0 && <p className="text-gray-400">Brak materiałów</p>}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {myMaterials.map((player) => (
-              <div
-                key={player._id}
-                className="bg-[#2a2a40] p-4 rounded-xl flex flex-col hover:shadow-lg hover:shadow-orange-400/10 transition"
-              >
-                <div className="rounded-lg overflow-hidden mb-2">
-                  <ReactPlayer url={player.linkyt} width="100%" height="180px" controls />
-                </div>
-                <span className="text-sm text-orange-300 mb-2">{player.category}</span>
-
-                <div className="flex justify-between items-center text-sm text-gray-300 mb-3">
+          <div className="mb-4">
+            {folders.map((folder) => (
+              <div key={folder.id} className="mb-4">
+                <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4 border">
                   <button
-                    onClick={() => handleOnClickLike('like', player._id)}
-                    className="flex items-center gap-1 hover:text-orange-400"
+                    onClick={() => toggleFolder(folder.id)}
+                    className="flex items-center gap-3 w-full mb-3"
                   >
-                    <HandThumbUpIcon className="w-4 h-4" /> {player.countlike}
+                    {folder.isExpanded ? (
+                      <ChevronDownIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    ) : (
+                      <ChevronRightIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    )}
+                    <FolderIcon className="w-6 h-6 text-yellow-500" />
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{folder.name}</h3>
                   </button>
-                  <button
-                    onClick={() => handleOnClickLike('unlike', player._id)}
-                    className="flex items-center gap-1 hover:text-red-400"
-                  >
-                    <HandThumbDownIcon className="w-4 h-4" /> {player.countunlike}
-                  </button>
-                </div>
-
-                <div className="flex gap-2 mt-auto">
-                  <button
-                    onClick={() => handleOnClickUpdate(player._id)}
-                    className="flex-1 bg-green-600 hover:bg-green-500 py-2 rounded-lg text-sm"
-                  >
-                    Edytuj
-                  </button>
-                  <button
-                    onClick={() => handleOnClickDelete(player._id)}
-                    className="flex-1 bg-red-500 hover:bg-red-400 py-2 rounded-lg text-sm"
-                  >
-                    Usuń
-                  </button>
+                  
+                  {folder.isExpanded && (
+                    <div className="space-y-2 pl-2">
+                      {documents
+                        .filter((doc) => doc.folderId === folder.id)
+                        .map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="flex items-center justify-between py-2 px-3 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition"
+                          >
+                            <button
+                              onClick={() => handleDownloadDocument(doc.id)}
+                              className="flex-1 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
+                            >
+                              {doc.name}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleShareDocument(doc.id, doc.name);
+                              }}
+                              className="p-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 rounded-full transition ml-2"
+                              title="Udostępnij"
+                            >
+                              <ShareIcon className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex-1 log-in py-2.5 rounded-lg font-medium"
+              >
+                <PlusIcon className="w-5 h-5 inline mr-2" />
+                Dodaj materiał
+              </button>
+              <button
+                onClick={() => setShowAddFolderModal(true)}
+                className="flex-1 log-in py-2.5 rounded-lg font-medium bg-blue-500 hover:bg-blue-600"
+              >
+                <PlusIcon className="w-5 h-5 inline mr-2" />
+                Dodaj folder
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Box 2 - Materiały od znajomych */}
-        <div className="flex-1 bg-[#1c1c2b] rounded-2xl shadow-lg p-6">
-          <h2 className="text-2xl font-semibold text-yellow-300 mb-4">Materiały od znajomych</h2>
-          {friendsMaterials.length === 0 && <p className="text-gray-400">Brak materiałów znajomych</p>}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {friendsMaterials.map((player) => (
-              <div
-                key={player._id}
-                className="bg-[#2a2a40] p-4 rounded-xl flex flex-col hover:shadow-lg hover:shadow-orange-400/10 transition"
-              >
-                <div className="rounded-lg overflow-hidden mb-2">
-                  <ReactPlayer url={player.linkyt} width="100%" height="180px" controls />
-                </div>
-                <span className="text-sm text-orange-300 mb-2">{player.category}</span>
-              </div>
-            ))}
-          </div>
+        <div className="login-box p-4 rounded shadow">
+          <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Materiały od znajomych</h2>
+          <p className="text-slate-700 dark:text-slate-300">Brak materiałów znajomych</p>
         </div>
       </div>
 
-      {message && <p className="mt-6 text-sm text-gray-300">{message}</p>}
+      {message && <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">{message}</p>}
 
       {/* Add Material Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1c2b] rounded-2xl p-6 w-full max-w-md relative">
+          <div className="login-box rounded-lg p-6 w-full max-w-md relative">
             <button
               onClick={() => {
                 setShowAddModal(false);
                 setNewDocName('');
                 setSelectedFile(null);
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
             
-            <h3 className="text-xl font-semibold text-yellow-300 mb-6">Dodaj materiał</h3>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj materiał</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-300 mb-2">Nazwa dokumentu</label>
+                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Folder</label>
+                <select
+                  value={selectedFolderId}
+                  onChange={(e) => setSelectedFolderId(Number(e.target.value))}
+                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
+                >
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Nazwa dokumentu</label>
                 <input
                   type="text"
                   value={newDocName}
                   onChange={(e) => setNewDocName(e.target.value)}
                   placeholder="np. Notatki z wykładu"
-                  className="w-full bg-[#2a2a40] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
                 />
               </div>
               
               <div>
-                <label className="block text-sm text-gray-300 mb-2">Wybierz plik</label>
+                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Wybierz plik</label>
                 <input
                   type="file"
                   onChange={handleFileSelect}
-                  className="w-full bg-[#2a2a40] text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:cursor-pointer hover:file:bg-orange-400"
+                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
                 />
                 {selectedFile && (
-                  <p className="mt-2 text-sm text-gray-400">Wybrany plik: {selectedFile.name}</p>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Wybrany plik: {selectedFile.name}</p>
                 )}
               </div>
               
@@ -283,13 +321,63 @@ export const File = () => {
                     setNewDocName('');
                     setSelectedFile(null);
                   }}
-                  className="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg transition"
+                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
                 >
                   Anuluj
                 </button>
                 <button
                   onClick={handleAddDocument}
-                  className="flex-1 bg-orange-500 hover:bg-orange-400 py-2 rounded-lg transition font-medium"
+                  className="flex-1 log-in py-2 rounded-lg font-medium"
+                >
+                  Dodaj
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Folder Modal */}
+      {showAddFolderModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+            <button
+              onClick={() => {
+                setShowAddFolderModal(false);
+                setNewFolderName('');
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+            
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj folder</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Nazwa folderu</label>
+                <input
+                  type="text"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  placeholder="np. Fizyka"
+                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
+                />
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowAddFolderModal(false);
+                    setNewFolderName('');
+                  }}
+                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+                >
+                  Anuluj
+                </button>
+                <button
+                  onClick={handleAddFolder}
+                  className="flex-1 log-in py-2 rounded-lg font-medium bg-blue-500 hover:bg-blue-600"
                 >
                   Dodaj
                 </button>
