@@ -21,6 +21,7 @@ export const Menu = () => {
         <WaNavLink to={routes.HOME.path}>Start</WaNavLink>
         <WaNavLink to={routes.FILE.path}>Materiały</WaNavLink>
         <WaNavLink to={routes.PLAN.path}>Plan nauki</WaNavLink>
+        <WaNavLink to={routes.MUSIC.path}>Muzyka</WaNavLink>
         <WaNavLink to={routes.FRIENDS.path}>Znajomi</WaNavLink>
         {!isLoggedIn && (
           <>

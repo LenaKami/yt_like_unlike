@@ -8,6 +8,7 @@ import { UpdatePlayerPage } from "./Pages/UpdatePlayerPage";
 import {FilePage} from "./Pages/FilePage";
 import { PlanNaukiPage } from './Pages/PlanNaukiPage';
 import { FriendsPage } from './Pages/FriendsPage';
+import { MusicPage } from './Pages/MusicPage';
 
 export const routes = {
   REGISTRATIONFORM: {
@@ -37,6 +38,9 @@ export const routes = {
   },
   FRIENDS: {
     path: "/friends",
+  },
+  MUSIC: {
+    path: "/music",
   },
 };
 
@@ -80,6 +84,10 @@ export const router = createBrowserRouter([
       {
         path: routes.FILE.path,
         element: <FilePage />,
+      },
+      {
+        path: routes.MUSIC.path,
+        element: <MusicPage />,
       },
     ],
   },
