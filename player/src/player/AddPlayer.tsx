@@ -7,10 +7,8 @@ import {zodResolver} from '@hookform/resolvers/zod'
 
 export const AddPlayerYT = () => {
 
-  const classinput = "input-color border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
-  const classlabel = "block mb-2 text-sm font-medium text-white"
-
-
+  const classinput =  "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500";
+   const classlabel = "block mb-2 text-sm font-medium text-white"
     const [url, setUrl] = useState('');
     const [message, setMessage] = useState('');
     const {register, handleSubmit, formState:{errors }} = useForm<RegistrationFormData>({
@@ -46,7 +44,7 @@ export const AddPlayerYT = () => {
     };
 
   return (
-    <div className="App">
+    <div className="login-box">
       <header className="App-header">
         <h1>Odtwarzacz YouTube w React</h1>
           <form onSubmit={handleSubmit(handleAddForm)}>

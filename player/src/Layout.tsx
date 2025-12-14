@@ -1,28 +1,31 @@
-import { Outlet, useLocation } from "react-router-dom"; // 1. Dodaj useLocation
+import { Outlet, useLocation } from "react-router-dom";
 import { Menu } from "./Menu";
-import { routes } from "./routes"; // 2. Importuj routes, żeby sprawdzać ścieżki
+import { routes } from "./routes";
 
 export const Layout = () => {
-  const location = useLocation(); // Pobieramy aktualny obiekt lokalizacji
+  const location = useLocation();
 
-  // 3. Lista ścieżek, na których NIE chcemy menu
-  // (bazując na Twoim pliku routes.js: "/" to rejestracja, "/registration" to logowanie)
   const hideMenuPaths = [
     routes.REGISTRATIONFORM.path, 
     routes.LOGINFORM.path
   ];
 
-  // Sprawdzamy, czy aktualny pathname znajduje się na liście ukrywania
   const showMenu = !hideMenuPaths.includes(location.pathname);
 
   return (
-    <div className="flex items-center justify-center h-[85vh]">
-      <div className="flex w-[1000px] h-[600px] bg-gray-800 shadow-lg rounded-2xl overflow-hidden">
+    // ZMIANA 1: Zamiast h-[85vh] dajemy min-h-[85vh] i padding (py-12), 
+    // żeby w razie dużej treści cała strona się scrollowała, a nie ucięła.
+    <div className="flex items-center justify-center min-h-[85vh] py-12">
+      
+      {/* ZMIANA 2: Usuwamy h-[550px]. Dajemy min-h-[550px], 
+          dzięki temu okno ma startową wielkość, ale ROŚNIE, gdy jest więcej treści. */}
+      <div className="flex w-[1000px] min-h-[400px] bg-gray-800 shadow-lg rounded-2xl overflow-hidden">
         
-        {/* 4. Renderuj Menu tylko jeśli showMenu jest true */}
         {showMenu && <Menu />}
-        {/* Jeśli menu znika, main zajmie 100% szerokości dzięki flex-1 */}
-        <main className="flex-1 login-color p-6 overflow-y-auto relative flex flex-col">
+
+        {/* ZMIANA 3: Usuwamy 'overflow-y-auto'. 
+            Teraz main nie będzie miał paska, tylko rozepcha rodzica (div wyżej). */}
+        <main className="flex-1 login-color p-6 relative flex flex-col">
           <Outlet />
         </main>
 

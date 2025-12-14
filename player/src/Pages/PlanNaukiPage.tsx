@@ -13,7 +13,7 @@ type Task = {
 };
 
 export const PlanNaukiPage = () => {
-  const classinput = "input-color border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
+  const classinput = "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
   const classlabel = "block mb-2 text-sm font-medium text-white"
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
@@ -105,7 +105,7 @@ export const PlanNaukiPage = () => {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className={classinput}
+                className={`${classinput} !p-0.5 text-sm`} 
               />
             </div>
             <div className="flex-1">
@@ -114,7 +114,7 @@ export const PlanNaukiPage = () => {
                 type="time"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className={classinput}
+                className={`${classinput} !p-0.5 text-sm`} 
               />
             </div>
             <div className="flex-1">
@@ -123,7 +123,7 @@ export const PlanNaukiPage = () => {
                 type="time"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className={classinput}
+                className={`${classinput} !p-0.5 text-sm`} 
               />
             </div>
           </div>
@@ -145,7 +145,7 @@ export const PlanNaukiPage = () => {
           {/* Przyciski */}
           <div className="flex space-x-2 mt-4">
             <button type="submit" className="flex-1 log-in py-2">Dodaj</button>
-            <button type="button" onClick={clearForm} className="flex-1 log-in py-2 bg-gray-500 hover:bg-gray-600">Wyczyść</button>
+            <button type="button" onClick={clearForm} className="flex-1 log-in-e">Wyczyść</button>
           </div>
 
         </form>

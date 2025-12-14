@@ -186,7 +186,7 @@ export const File = () => {
                 <div className="bg-slate-50 dark:bg-slate-700 rounded-lg p-4 border">
                   <button
                     onClick={() => toggleFolder(folder.id)}
-                    className="flex items-center gap-3 w-full mb-3"
+                    className="flex items-center gap-3 w-full mb-3 foler"
                   >
                     {folder.isExpanded ? (
                       <ChevronDownIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -208,7 +208,7 @@ export const File = () => {
                           >
                             <button
                               onClick={() => handleDownloadDocument(doc.id)}
-                              className="flex-1 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
+                              className="flex-1 text-left text-white login-box transition"
                             >
                               {doc.name}
                             </button>

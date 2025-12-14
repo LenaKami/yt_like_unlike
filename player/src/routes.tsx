@@ -22,7 +22,7 @@ export const routes = {
     path: "/home",
   },
   LOGINFORM: {
-    path: "/registration",
+    path: "/login",
   },
   ADDPLAYER: {
     path: "/add",
