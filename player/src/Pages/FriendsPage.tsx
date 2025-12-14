@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { XMarkIcon,} from '@heroicons/react/24/solid';
 import { Input } from '../ui/Input/Input';
 
 type Friend = {
@@ -154,13 +155,21 @@ export const FriendsPage = () => {
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-50" onClick={() => setShowModal(false)} />
-          <div className="login-box p-6 rounded shadow z-10 w-full max-w-md">
+          <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+            <button
+        onClick={() => {
+          setShowModal(false);
+        }}
+        className="absolute top-4 right-7 log-in-e"
+      >
+        <XMarkIcon className="w-6 h-6" />
+      </button>
             <h2 className="text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">Dodaj znajomego</h2>
             <div>
               <Input label="Imię i nazwisko" value={name} onChange={(e) => setName(e.target.value)} inputClassName={classinput} labelClassName={classlabel}/>
              </div>
             <div className="mt-4 flex justify-end space-x-2">
-              <button onClick={() => setShowModal(false)} className="px-3 py-1 border ">Anuluj</button>
+              <button onClick={() => setShowModal(false)} className="px-3 py-1 border log-in-e ">Anuluj</button>
               <button onClick={addFriend} className="px-3 py-1 log-in ">Dodaj</button>
             </div>
           </div>

@@ -233,14 +233,14 @@ export const FilePage = () => {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex-1 log-in py-2.5 rounded-lg font-medium"
+                className="flex-1 log-in py-2.5 font-medium"
               >
                 <PlusIcon className="w-5 h-5 inline mr-2" />
                 Dodaj materiał
               </button>
               <button
                 onClick={() => setShowAddFolderModal(true)}
-                className="flex-1 log-in py-2.5 rounded-lg font-medium bg-blue-500 hover:bg-blue-600"
+                className="flex-1 log-in py-2.5 font-medium"
               >
                 <PlusIcon className="w-5 h-5 inline mr-2" />
                 Dodaj folder
@@ -268,7 +268,7 @@ export const FilePage = () => {
                 setNewDocName('');
                 setSelectedFile(null);
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="absolute top-4 right-7 log-in-e"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
@@ -321,13 +321,13 @@ export const FilePage = () => {
                     setNewDocName('');
                     setSelectedFile(null);
                   }}
-                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+                  className="flex-1 log-in-e py-2"
                 >
                   Anuluj
                 </button>
                 <button
                   onClick={handleAddDocument}
-                  className="flex-1 log-in py-2 rounded-lg font-medium"
+                  className="flex-1 log-in py-2 font-medium"
                 >
                   Dodaj
                 </button>
@@ -346,7 +346,7 @@ export const FilePage = () => {
                 setShowAddFolderModal(false);
                 setNewFolderName('');
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="absolute top-4 right-7 log-in-e"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
@@ -371,13 +371,13 @@ export const FilePage = () => {
                     setShowAddFolderModal(false);
                     setNewFolderName('');
                   }}
-                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+                  className="flex-1 log-in-e py-2"
                 >
                   Anuluj
                 </button>
                 <button
                   onClick={handleAddFolder}
-                  className="flex-1 log-in py-2 rounded-lg font-medium bg-blue-500 hover:bg-blue-600"
+                  className="flex-1 log-in py-2"
                 >
                   Dodaj
                 </button>

@@ -62,13 +62,7 @@ export const RegistrationForm = () => {
                 Rejestracja
               </h1>
               <form onSubmit={handleSubmit(handleRegistrationForm)} className="space-y-4 md:space-y-6" action="#">
-                <div className="relative mb-4" data-twe-input-wrapper-init>
-                  <Input label="Login" {...register("login")} error={errors.login} inputClassName={classinput} labelClassName={classlabel} />
-                </div>
-                <div className="relative mb-4" data-twe-input-wrapper-init>
-                  <Input label="E-mail" {...register("email", { required: true })} type="email" error={errors.email} inputClassName={classinput} labelClassName={classlabel} />
-                </div>
-                <div className="relative mb-4">
+                {/* <div className="relative mb-4">
                 <input
                   id="image"
                   type="file"
@@ -88,7 +82,13 @@ export const RegistrationForm = () => {
                     Wybrano: {selectedImage.name}
                   </p>
                 )}
-              </div>
+              </div> */}
+                <div className="relative mb-4" data-twe-input-wrapper-init>
+                  <Input label="Login" {...register("login")} error={errors.login} inputClassName={classinput} labelClassName={classlabel} />
+                </div>
+                <div className="relative mb-4" data-twe-input-wrapper-init>
+                  <Input label="E-mail" {...register("email", { required: true })} type="email" error={errors.email} inputClassName={classinput} labelClassName={classlabel} />
+                </div>
                 <div className="relative mb-4" data-twe-input-wrapper-init>
                   <Input label="Hasło" {...register("password", { required: true })} type="password" error={errors.password} inputClassName={classinput} labelClassName={classlabel} />
                 </div>
