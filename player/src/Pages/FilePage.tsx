@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../Auth/AuthContext';
+import { Input} from "../ui"
+import { useForm, type SubmitHandler } from "react-hook-form";
+import {type FileFormData, validationSchema} from "../types_file";
+import {zodResolver} from '@hookform/resolvers/zod'
 import { HandThumbUpIcon, HandThumbDownIcon, DocumentIcon, PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 
 type PlayerYT = {
@@ -28,6 +32,9 @@ type Folder = {
 };
 
 export const FilePage = () => {
+    const classinput =
+    "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500";
+  const classlabel = "block mb-2 text-sm font-medium text-white";
   const [players, setPlayers] = useState<PlayerYT[]>([]);
   const [loading, setLoading] = useState(true);
   // selected category (not used yet)
@@ -41,6 +48,10 @@ export const FilePage = () => {
   const navigate = useNavigate();
   const { username } = useAuthContext();
 
+
+    const { register, handleSubmit, formState: { errors }, reset } = useForm<FileFormData>({
+      resolver: zodResolver(validationSchema),
+    });
   // Mockup folders
   const [folders, setFolders] = useState<Folder[]>([
     { id: 1, name: 'Matematyka', isExpanded: true },
@@ -136,9 +147,11 @@ export const FilePage = () => {
     };
     setDocuments([...documents, newDoc]);
     setMessage('✅ Dokument dodany (mockup)');
+    reset();
     setShowAddModal(false);
     setNewDocName('');
     setSelectedFile(null);
+    
   };
 
   const handleAddFolder = () => {
@@ -275,64 +288,75 @@ export const FilePage = () => {
             
             <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj materiał</h3>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Folder</label>
-                <select
-                  value={selectedFolderId}
-                  onChange={(e) => setSelectedFolderId(Number(e.target.value))}
-                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
-                >
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Nazwa dokumentu</label>
-                <input
-                  type="text"
-                  value={newDocName}
-                  onChange={(e) => setNewDocName(e.target.value)}
-                  placeholder="np. Notatki z wykładu"
-                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Wybierz plik</label>
-                <input
-                  type="file"
-                  onChange={handleFileSelect}
-                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
-                />
-                {selectedFile && (
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Wybrany plik: {selectedFile.name}</p>
-                )}
-              </div>
-              
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setNewDocName('');
-                    setSelectedFile(null);
-                  }}
-                  className="flex-1 log-in-e py-2"
-                >
-                  Anuluj
-                </button>
-                <button
-                  onClick={handleAddDocument}
-                  className="flex-1 log-in py-2 font-medium"
-                >
-                  Dodaj
-                </button>
-              </div>
-            </div>
+            <form   onSubmit={handleSubmit(handleAddDocument)}   className="space-y-4 md:space-y-6"   action="#" >
+  {/* Folder */}
+  <div>
+    <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+      Folder
+    </label>
+    <select
+      {...register('folderId', { required: true })}
+      className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
+    >
+      {folders.map((folder) => (
+        <option key={folder.id} value={folder.id}>
+          {folder.name}
+        </option>
+      ))}
+    </select>
+    {errors.folderId && (
+      <p className="text-sm text-red-500 mt-1">Wybierz folder</p>
+    )}
+  </div>
+
+  {/* Nazwa dokumentu */}
+  <div>
+    <Input
+      label="Nazwa pliku"
+      {...register('filename', { required: 'Podaj nazwę pliku' })}
+      inputClassName={classinput}
+      labelClassName={classlabel}
+      error={errors.filename}
+    />
+  </div>
+
+  {/* Plik */}
+  <div>
+    <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+      Wybierz plik
+    </label>
+    <input
+      type="file"
+      {...register('file', { required: true })}
+      className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
+    />
+    {errors.file && (
+      <p className="text-sm text-red-500 mt-1">Wybierz plik</p>
+    )}
+  </div>
+
+  {/* Akcje */}
+  <div className="flex gap-3 mt-6">
+    <button
+      type="button"
+      onClick={() => {
+        setShowAddModal(false);
+        reset();
+      }}
+      className="flex-1 log-in-e py-2"
+    >
+      Anuluj
+    </button>
+
+    <button
+      type="submit"
+      className="flex-1 log-in py-2 font-medium"
+    >
+      Dodaj
+    </button>
+  </div>
+</form>
+
           </div>
         </div>
       )}
@@ -355,14 +379,13 @@ export const FilePage = () => {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Nazwa folderu</label>
-                <input
-                  type="text"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="np. Fizyka"
-                  className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
-                />
+                    <Input
+      label="Nazwa folder"
+      {...register('foldername', { required: 'Wprowadź nazwę folderu' })}
+      inputClassName={classinput}
+      labelClassName={classlabel}
+      error={errors.foldername}
+    />
               </div>
               
               <div className="flex gap-3 mt-6">

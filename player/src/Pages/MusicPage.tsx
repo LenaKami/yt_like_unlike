@@ -295,7 +295,7 @@ export const MusicPage = () => {
             {...register('playlistName', { required: 'Wprowadź co najmniej 3 znaki' })}
             inputClassName={classinput}
             labelClassName={classlabel}
-            error={errors.playlistName?.message}
+            error={errors.playlistName}
           />
         </div>
 
@@ -315,6 +315,97 @@ export const MusicPage = () => {
           </button>
         </div>
       </form>
+    </div>
+  </div>
+)}
+
+{/* Add Song Modal */}
+{showAddSongModal && (
+  <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+      
+      {/* Close button */}
+      <button
+        onClick={() => {
+          setShowAddSongModal(false);
+          setNewSongName('');
+          setNewSongUrl('');
+        }}
+        className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+      >
+        <XMarkIcon className="w-6 h-6" />
+      </button>
+
+      <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">
+        Dodaj utwór
+      </h3>
+
+      <div className="space-y-4">
+        {/* Song name */}
+        <div>
+          <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+            Nazwa utworu
+          </label>
+          <Input label="Nazwa utworu" {...register("namesong", { required: true })} error={errors.namesong} inputClassName={classinput} labelClassName={classlabel} />
+                          
+          <input
+            type="text"
+            value={newSongName}
+            onChange={(e) => setNewSongName(e.target.value)}
+            placeholder="np. Muzyka relaksacyjna"
+            className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
+          />
+        </div>
+
+        {/* YouTube URL */}
+        <div>
+          <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+            Link YouTube
+          </label>
+          <input
+            type="text"
+            value={newSongUrl}
+            onChange={(e) => setNewSongUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
+          />
+        </div>
+
+        {/* Preview */}
+        {newSongUrl && (
+          <div className="mt-3">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+              Podgląd:
+            </p>
+            <img
+              src={getYouTubeThumbnail(newSongUrl)}
+              alt="Preview"
+              className="w-full rounded-lg"
+            />
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={() => {
+              setShowAddSongModal(false);
+              setNewSongName('');
+              setNewSongUrl('');
+            }}
+            className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+          >
+            Anuluj
+          </button>
+
+          <button
+            onClick={handleAddSong}
+            className="flex-1 log-in py-2 rounded-lg font-medium"
+          >
+            Dodaj
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 )}

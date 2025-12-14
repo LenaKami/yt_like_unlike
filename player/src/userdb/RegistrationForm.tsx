@@ -62,27 +62,6 @@ export const RegistrationForm = () => {
                 Rejestracja
               </h1>
               <form onSubmit={handleSubmit(handleRegistrationForm)} className="space-y-4 md:space-y-6" action="#">
-                {/* <div className="relative mb-4">
-                <input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="file-input"
-                />
-                <label
-                  htmlFor="image"
-                  className="file-label"
-                >
-                  Wybierz zdjęcie
-                </label>
-
-                {selectedImage && (
-                  <p className="file-name">
-                    Wybrano: {selectedImage.name}
-                  </p>
-                )}
-              </div> */}
                 <div className="relative mb-4" data-twe-input-wrapper-init>
                   <Input label="Login" {...register("login")} error={errors.login} inputClassName={classinput} labelClassName={classlabel} />
                 </div>

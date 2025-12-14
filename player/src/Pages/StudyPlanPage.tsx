@@ -152,8 +152,9 @@ const tasksByDate = useMemo(() => {
             </div>
             <div><label className={classlabel}>Playlist</label><select value={playlist} onChange={(e)=>setPlaylist(e.target.value)} className={classinput}><option>Playlist 1</option><option>Playlist 2</option><option>Playlist 3</option></select></div>
             <div className="flex space-x-2 mt-4">
-              <button type="submit" className="flex-1 log-in py-2">Dodaj</button>
               <button type="button" onClick={clearForm} className="flex-1 log-in-e">Wyczyść</button>
+              <button type="submit" className="flex-1 log-in py-2">Dodaj</button>
+              
             </div>
           </form>
         </section>

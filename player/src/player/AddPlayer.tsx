@@ -45,7 +45,7 @@ export const AddPlayerYT = () => {
 
   return (
     <div className="login-box">
-      <header className="App-header">
+      <header className="App-header p-10">
         <h1>Odtwarzacz YouTube w React</h1>
           <form onSubmit={handleSubmit(handleAddForm)}>
             <Input label='Link' {...register('linkyt')} error={errors.linkyt} inputClassName={classinput} labelClassName={classlabel}/>
@@ -59,7 +59,9 @@ export const AddPlayerYT = () => {
             <option value="ROCK">ROCK</option>
           </select>
           {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}</div>
+        <div className='p-10'>
         <button type="submit" style={{ padding: '10px 20px' }} className='log-in'>Odtwórz</button>
+        </div>
         </form>
         {message && <p className="dark: text-green-200">{message} </p>}
         {url && (
