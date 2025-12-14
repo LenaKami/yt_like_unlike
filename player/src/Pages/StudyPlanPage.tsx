@@ -145,7 +145,7 @@ export const PlanNaukiPage = () => {
           {/* Przyciski */}
           <div className="flex space-x-2 mt-4">
             <button type="submit" className="flex-1 log-in py-2">Dodaj</button>
-            <button type="button" onClick={clearForm} className="flex-1 log-in-e">Wyczyść</button>
+            <button type="button" onClick={clearForm} className="flex-1 log-in">Wyczyść</button>
           </div>
 
         </form>

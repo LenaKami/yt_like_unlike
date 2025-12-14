@@ -57,7 +57,6 @@ export const HomePage = () => {
   const mockFriends = [
     { id: 'm1', firstName: 'Agnieszka', lastName: 'Kowalska', avatar: 'https://i.pravatar.cc/150?img=32', active: true },
     { id: 'm2', firstName: 'Marek', lastName: 'Nowak', avatar: 'https://i.pravatar.cc/150?img=12', active: true },
-    { id: 'm3', firstName: 'Olga', lastName: 'Wiśniewska', avatar: 'https://i.pravatar.cc/150?img=45', active: false },
     { id: 'm4', firstName: 'Tomasz', lastName: 'Zieliński', avatar: 'https://i.pravatar.cc/150?img=7', active: true },
   ];
 

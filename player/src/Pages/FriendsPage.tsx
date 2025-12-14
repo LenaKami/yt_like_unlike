@@ -5,6 +5,8 @@ type Friend = {
   id: string;
   firstName: string;
   lastName: string;
+  avatar?: string;
+  active?: boolean;
 };
 
 const STORAGE_KEY = 'friendsList';
@@ -19,19 +21,19 @@ export const FriendsPage = () => {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setFriends(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setFriends(parsed);
+          return;
+        }
+      }
+      setFriends(MOCK_FRIENDS);
     } catch (e) {
-      console.error('Failed to read friends from storage', e);
+      console.error('Failed to read friends', e);
+      setFriends(MOCK_FRIENDS);
     }
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(friends));
-    } catch (e) {
-      console.error('Failed to save friends to storage', e);
-    }
-  }, [friends]);
 
   const addFriend = () => {
     if (!name.trim()) return;
@@ -53,35 +55,100 @@ export const FriendsPage = () => {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
+  const activeFriends = friends.filter(f => f.active);
+  const allFriends = friends;
+
+  const MOCK_FRIENDS: Friend[] = [
+    { id: 'm1', firstName: 'Agnieszka', lastName: 'Kowalska', avatar: 'https://i.pravatar.cc/150?img=32', active: true },
+    { id: 'm2', firstName: 'Marek', lastName: 'Nowak', avatar: 'https://i.pravatar.cc/150?img=12', active: true },
+    { id: 'm3', firstName: 'Olga', lastName: 'Wiśniewska', avatar: 'https://i.pravatar.cc/150?img=45', active: false },
+    { id: 'm4', firstName: 'Tomasz', lastName: 'Zieliński', avatar: 'https://i.pravatar.cc/150?img=7', active: true },
+  ];
+
+  const FriendListItem = ({ f }: { f: Friend }) => (
+    <li className="p-3 border rounded flex items-center box">
+      {f.avatar ? (
+        <div className="relative mr-3">
+          <img
+            src={f.avatar}
+            alt={`${f.firstName} ${f.lastName}`}
+            className="h-10 w-10 rounded-full object-cover"
+          />
+          <span
+            className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 ${
+              f.active ? 'bg-green-400' : 'bg-gray-400'
+            }`}
+          />
+        </div>
+      ) : (
+        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 font-medium mr-3">
+          {getInitials(f.firstName, f.lastName)}
+        </div>
+      )}
+      <div className="font-semibold text-slate-900 dark:text-slate-100">
+        {f.firstName} {f.lastName}
+      </div>
+    </li>
+  );
+
+
   return (
     <div className="login-box container mx-auto p-4">
-      <div className=" flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Znajomi</h1>
-        <div className="flex items-center space-x-2">
-          <button onClick={() => setShowModal(true)} className="px-3 py-1 log-in">Dodaj</button>
+      <div className="grid grid-cols-3 items-center mb-4">
+        <div /> {/* lewa kolumna – pusta, dla równowagi świata */}
+
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-center">
+          Znajomi
+        </h1>
+
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-3 py-1 log-in"
+          >
+            Dodaj
+          </button>
         </div>
       </div>
 
-      <section className=" p-4 shadow">
-        {friends.length === 0 ? (
-          <p className="text-slate-700 dark:text-slate-300">Brak znajomych. Dodaj nowego.</p>
-        ) : (
-          <ul className="space-y-2">
-            {friends.map((f) => (
-              <li key={f.id} className="p-2 border rounded flex justify-between items-center bg-slate-50 dark:bg-slate-700">
-                <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 font-medium">{getInitials(f.firstName, f.lastName)}</div>
-                  <div>
-                    <div className="font-semibold text-slate-900 dark:text-slate-100">{f.firstName} {f.lastName}</div>
-                  </div>
-                </div>
-                <div>
-                  <button onClick={() => removeFriend(f.id)} className="text-sm text-red-600">Usuń</button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+      <section className="space-y-6">
+        {/* AKTYWNI */}
+        <div>
+          <h2 className="text-xl font-semibold mb-3 text-slate-900 dark:text-slate-100">
+            Aktywni znajomi
+          </h2>
+
+          {activeFriends.length === 0 ? (
+            <p className="text-slate-600 dark:text-slate-400">
+              Brak aktywnych znajomych
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {activeFriends.map(f => (
+                <FriendListItem key={f.id} f={f} />
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* WSZYSCY */}
+        <div>
+          <h2 className="text-xl font-semibold mb-3 text-slate-900 dark:text-slate-100">
+            Wszyscy znajomi
+          </h2>
+
+          {allFriends.length === 0 ? (
+            <p className="text-slate-600 dark:text-slate-400">
+              Brak znajomych
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {allFriends.map(f => (
+                <FriendListItem key={f.id} f={f} />
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
 
       {showModal && (
