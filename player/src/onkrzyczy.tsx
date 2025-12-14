@@ -10,7 +10,7 @@ export const WaNavLink = ({ to, children }: Props) => {
         to={to}
         className={({ isActive}) =>
           isActive
-            ? "text-white"
+            ? "menulink active"
             : "menulink"
         }
       >
