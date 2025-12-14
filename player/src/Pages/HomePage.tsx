@@ -94,29 +94,31 @@ export const HomePage = () => {
           <section className="login-box p-4 rounded shadow">
           <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nowości</h2>
           <div className="space-y-3 text-slate-700 dark:text-slate-300">
-            <Text>Witaj! Sprawdź najnowsze materiały i aktualizacje.</Text>
-            <div className="p-3 border rounded bg-slate-50 dark:bg-slate-700">Nowy kurs: „React zaawansowany” — dodano 5 lekcji.</div>
-            <div className="p-3 border rounded bg-slate-50 dark:bg-slate-700">Aktualizacja: poprawki w odtwarzaczu wideo.</div>
+            <p>Witaj! Sprawdź najnowsze materiały i aktualizacje.</p>
+            <div className="p-3 border rounded box">Nowy kurs: „React zaawansowany” — dodano 5 lekcji.</div>
+            <div className="p-3 border rounded box">Aktualizacja: poprawki w odtwarzaczu wideo.</div>
           </div>
           </section>
 
           <section className="login-box p-4 rounded shadow">
           <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nadchodzące zadania</h2>
-          {upcoming.length === 0 ? (
-            <Text>Brak zaplanowanych zadań. Przejdź do Plan nauki, aby dodać nowe.</Text>
-          ) : (
-            <ul className="space-y-3">
-              {upcoming.map((t) => (
-                <li key={t.id} className={`p-3 border rounded flex items-start bg-slate-50 dark:bg-slate-700 ${t.active === false ? 'opacity-50' : ''}`}>
-                  <input type="checkbox" checked={t.active === false} onChange={() => toggleActive(t.id)} className="mr-3 mt-1" />
-                  <div className="flex-1">
-                    <div className={`font-semibold ${t.active === false ? 'text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>{t.name}</div>
-                    <div className="text-sm text-slate-600 dark:text-slate-300">{t.date} • {t.start} - {t.end} • {t.playlist}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="space-y-3 text-slate-700 dark:text-slate-300">
+            {upcoming.length === 0 ? (
+              <p>Brak zaplanowanych zadań. Przejdź do Plan nauki, aby dodać nowe.</p>
+            ) : (
+              <ul className="space-y-3">
+                {upcoming.map((t) => (
+                  <li key={t.id} className={`p-3 border rounded flex items-start bg-slate-50 dark:bg-slate-700 ${t.active === false ? 'opacity-50' : ''}`}>
+                    <input type="checkbox" checked={t.active === false} onChange={() => toggleActive(t.id)} className="mr-3 mt-1" />
+                    <div className="flex-1">
+                      <div className={`font-semibold ${t.active === false ? 'text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>{t.name}</div>
+                      <div className="text-sm text-slate-600 dark:text-slate-300">{t.date} • {t.start} - {t.end} • {t.playlist}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           </section>
         </div>
         <section className="login-box p-4 rounded shadow">
@@ -126,7 +128,7 @@ export const HomePage = () => {
           ) : (
             <ul className="space-y-3">
               {friends.slice(0, 6).map((f) => (
-                <li key={f.id} className="p-2 border rounded flex items-center bg-slate-50 dark:bg-slate-700">
+                <li key={f.id} className="p-3 border rounded flex items-center box">
                   {f.avatar ? (
                     <div className="relative mr-3">
                       <img src={f.avatar} alt={`${f.firstName} ${f.lastName}`} className="h-10 w-10 rounded-full object-cover" />

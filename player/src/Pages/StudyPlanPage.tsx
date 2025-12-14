@@ -86,10 +86,10 @@ export const PlanNaukiPage = () => {
 
   return (
     <div className="login-box container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4 text-slate-900 dark:text-slate-100">Plan nauki</h1>
+      <h1 className="text-2xl font-bold mb-4">Plan nauki</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <section className="login-box  p-4 rounded shadow">
-          <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Dodaj zadanie</h2>
+          <h2 className="text-xl font-semibold mb-2">Dodaj zadanie</h2>
         <form onSubmit={addTask} className="space-y-4 md:space-y-6">
           
           {/* Nazwa zadania - używamy Twojego komponentu Input */}
@@ -153,8 +153,9 @@ export const PlanNaukiPage = () => {
 
         <section className="login-box  p-4 rounded shadow">
           <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nadchodzące zadania</h2>
-          {tasks.length === 0 ? (
-            <Text>Brak zaplanowanych zadań.</Text>
+          <div className="space-y-3 text-slate-700 dark:text-slate-300">
+            {tasks.length === 0 ? (
+            <p>Brak zaplanowanych zadań.</p>
           ) : (
             <ul className="space-y-3">
               {tasks.map((t) => (
@@ -171,6 +172,7 @@ export const PlanNaukiPage = () => {
               ))}
             </ul>
           )}
+          </div>
         </section>
       </div>
     </div>

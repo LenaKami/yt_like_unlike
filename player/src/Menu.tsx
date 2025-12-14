@@ -9,7 +9,7 @@ export const Menu = () => {
 
   // Zwracamy TYLKO <aside>, bez zewnętrznych kontenerów
   return (
-    <aside className="w-60 bg-gray-700 p-6 flex flex-col flex-shrink-0">
+    <aside className="w-60 p-6 flex flex-col flex-shrink-0 left-panel">
       <div className="flex flex-col items-center mb-6">
         {/* Avatar użytkownika */}
         <div className="w-16 h-16 rounded-full bg-gray-600 mb-2"></div>

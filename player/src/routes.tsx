@@ -6,13 +6,13 @@ import { RegistrationFormPage } from './Pages/RegistrationFormPage'
 import {AddPlayerPage} from "./Pages/AddPlayerYTPage";
 import { UpdatePlayerPage } from "./Pages/UpdatePlayerPage";
 import {FilePage} from "./Pages/FilePage";
-import { PlanNaukiPage } from './Pages/PlanNaukiPage';
+import { PlanNaukiPage } from './Pages/StudyPlanPage.tsx';
 import { FriendsPage } from './Pages/FriendsPage';
 import { MusicPage } from './Pages/MusicPage';
 
 export const routes = {
   REGISTRATIONFORM: {
-    path: "/",
+    path: "/registration",
     // title:
   },
   /*DATAFETCHER: {
@@ -46,32 +46,28 @@ export const routes = {
 
 export const router = createBrowserRouter([
   {
-    path: routes.REGISTRATIONFORM.path,
+    path: "/",              // <-- Layout obejmuje całą apkę
     element: <Layout />,
     children: [
       {
-        path: routes.HOME.path,
+        path: routes.HOME.path,        // "/" -> strona główna
         element: <HomePage />,
       },
-      /*{
-        path: routes.DATAFETCHER.path,
-        element: <DataFetcherPage />,
-      },*/
       {
-        path: routes.REGISTRATIONFORM.path,
+        path: routes.REGISTRATIONFORM.path,   // "/registration"
         element: <RegistrationFormPage />,
       },
       {
-        path: routes.LOGINFORM.path,
+        path: routes.LOGINFORM.path,          // "/login" (zmień to, błagam)
         element: <LoginFormPage />,
       },
       {
-        path: routes.ADDPLAYER.path,
-        element: < AddPlayerPage/>,
+        path: routes.ADDPLAYER.path,          // "/add"
+        element: <AddPlayerPage />,
       },
       {
-        path: routes.UPDATEPLAYER.path,
-        element: < UpdatePlayerPage/>,
+        path: routes.UPDATEPLAYER.path,       // "/update/:id"
+        element: <UpdatePlayerPage />,
       },
       {
         path: routes.PLAN.path,
