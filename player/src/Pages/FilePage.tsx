@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../Auth/AuthContext';
 import { Input } from "../ui"
 import { useForm, type SubmitHandler } from "react-hook-form";
-import { type FileFormData, documentValidationSchema } from "../types_file";
+import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 
@@ -49,7 +49,6 @@ export const FilePage = () => {
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   
-  const [newFolderName, setNewFolderName] = useState('');
   const [documentToShare, setDocumentToShare] = useState<Document | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   
@@ -58,6 +57,15 @@ export const FilePage = () => {
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FileFormData>({
     resolver: zodResolver(documentValidationSchema),
+  });
+
+  const { 
+    register: registerFolder, 
+    handleSubmit: handleSubmitFolder, 
+    formState: { errors: errorsFolder }, 
+    reset: resetFolder 
+  } = useForm<FolderFormData>({
+    resolver: zodResolver(folderValidationSchema),
   });
 
   const [folders, setFolders] = useState<Folder[]>([
@@ -164,7 +172,7 @@ export const FilePage = () => {
     setShowAddModal(false);
   };
 
-  const handleAddFolder: SubmitHandler<FileFormData> = async (data) => {
+  const handleAddFolder: SubmitHandler<FolderFormData> = async (data) => {
   const newFolder: Folder = {
     id: folders.length + 1,
     name: data.foldername,
@@ -173,7 +181,8 @@ export const FilePage = () => {
 
   setFolders([...folders, newFolder]);
   setShowAddFolderModal(false);
-  reset(); // z react-hook-form
+  resetFolder();
+  setMessage('✅ Folder dodany pomyślnie!');
 };
 
 
@@ -381,7 +390,7 @@ export const FilePage = () => {
             <button
               onClick={() => {
                 setShowAddFolderModal(false);
-                setNewFolderName('');
+                resetFolder();
               }}
               className="absolute top-4 right-7 log-in-e text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
@@ -391,23 +400,24 @@ export const FilePage = () => {
             <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj folder</h3>
             
             <form
-  onSubmit={handleSubmit(handleAddFolder)}
+  onSubmit={handleSubmitFolder(handleAddFolder)}
   className="space-y-4 md:space-y-6"
 >
   <Input
     label="Nazwa folderu"
-    {...register('foldername', {
-      required: 'Podaj nazwę folderu',
-    })}
+    {...registerFolder('foldername')}
     inputClassName={classinput}
     labelClassName={classlabel}
-    error={errors.foldername}
+    error={errorsFolder.foldername}
   />
 
   <div className="flex gap-3 mt-6">
     <button
       type="button"
-      onClick={() => setShowAddFolderModal(false)}
+      onClick={() => {
+        setShowAddFolderModal(false);
+        resetFolder();
+      }}
       className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
     >
       Anuluj

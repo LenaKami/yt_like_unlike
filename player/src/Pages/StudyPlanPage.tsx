@@ -64,6 +64,8 @@ export const PlanNaukiPage = () => {
     resolver: zodResolver(validationSchema),
   });
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // ===== Load tasks or add sample =====
 // === Load sample tasks ===
@@ -140,7 +142,38 @@ setPlaylist('Playlist 1');
     setTasks((s) => [...s, newTask].sort((a,b)=> (a.date+a.start).localeCompare(b.date+b.start)));
     clearForm();
   };
-  const editTask = (id: string) => setTasks((s)=> s.filter(t=> t.id!==id));
+  const editTask = (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      setEditingTask(task);
+      setName(task.name);
+      setDate(task.date);
+      setStart(task.start);
+      setEnd(task.end);
+      setPlaylist(task.playlist);
+      setShowEditModal(true);
+    }
+  };
+
+  const saveEdit = () => {
+    if (!editingTask || !name || !date || !start || !end) return;
+    setTasks((prev) =>
+      prev.map(t => 
+        t.id === editingTask.id 
+          ? { ...t, name, date, start, end, playlist }
+          : t
+      ).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
+    );
+    setShowEditModal(false);
+    setEditingTask(null);
+    clearForm();
+  };
+
+  const deleteTask = (id: string) => {
+    setTasks((s)=> s.filter(t=> t.id!==id));
+    setShowEditModal(false);
+    setEditingTask(null);
+  };
   const toggleActive = (id: string) => setTasks((s)=> s.map(t=> t.id===id ? {...t, active:!t.active} : t));
 
   const now = new Date();
@@ -331,6 +364,105 @@ Dodaj
         
       </div>
 <p className="text-green-200">message</p>
+
+      {/* EDIT TASK MODAL */}
+      {showEditModal && editingTask && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+            <button
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingTask(null);
+                clearForm();
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+            
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Edytuj zadanie</h3>
+            
+            <div className="space-y-4">
+              <Input
+                label="Nazwa zadania"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                inputClassName={classinput}
+                labelClassName={classlabel}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <Input
+                  label="Data"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  inputClassName={classinput}
+                  labelClassName={classlabel}
+                />
+                <Input
+                  label="Start"
+                  type="time"
+                  value={start}
+                  onChange={(e) => setStart(e.target.value)}
+                  inputClassName={classinput}
+                  labelClassName={classlabel}
+                />
+                <Input
+                  label="Koniec"
+                  type="time"
+                  value={end}
+                  onChange={(e) => setEnd(e.target.value)}
+                  inputClassName={classinput}
+                  labelClassName={classlabel}
+                />
+              </div>
+
+              <div>
+                <label className={classlabel}>Playlist</label>
+                <select
+                  value={playlist}
+                  onChange={(e) => setPlaylist(e.target.value)}
+                  className={classinput}
+                >
+                  <option>Playlist 1</option>
+                  <option>Playlist 2</option>
+                  <option>Playlist 3</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => deleteTask(editingTask.id)}
+                  className="flex-1 log-in-e py-2 bg-red-500 hover:bg-red-600"
+                >
+                  Usuń
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingTask(null);
+                    clearForm();
+                  }}
+                  className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
+                >
+                  Anuluj
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  className="flex-1 log-in py-2 font-medium"
+                >
+                  Zapisz
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Calendar modal */}
       {showCalendar && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
