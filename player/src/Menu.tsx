@@ -34,7 +34,7 @@ export const Menu = () => {
     ) : null}
 
     {/* Overlay po najechaniu */}
-    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-white text-sm font-medium">
+    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-gray-100 text-sm font-medium">
       Ustaw zdjęcie
     </div>
   </label>

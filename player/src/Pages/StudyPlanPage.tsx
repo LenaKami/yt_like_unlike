@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Input } from '../ui/Input/Input';
 import { CalendarIcon } from '@heroicons/react/24/solid';
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { type StudyFormData, validationSchema } from "../types_plan";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // ===== Types =====
 type Task = {
@@ -56,7 +59,9 @@ export const PlanNaukiPage = () => {
     d.setDate(1);
     return d;
   });
-
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<StudyFormData>({
+    resolver: zodResolver(validationSchema),
+  });
   const [showCalendar, setShowCalendar] = useState(false);
 
   // ===== Load tasks or add sample =====
@@ -99,7 +104,34 @@ const tasksByDate = useMemo(() => {
     catch (e) { console.error('Failed to save tasks', e); }
   }, [tasks]);
 
-  const clearForm = () => { setName(''); setDate(''); setStart(''); setEnd(''); setPlaylist('Playlist 1'); };
+const onSubmit: SubmitHandler<StudyFormData> = (data) => {
+const newTask: Task = {
+id: String(Date.now()),
+name: data.taskname,
+date: data.dataaa,
+start: data.startg,
+end: data.endg,
+playlist,
+active: true,
+};
+
+
+setTasks((prev) =>
+[...prev, newTask].sort((a, b) =>
+(a.date + a.start).localeCompare(b.date + b.start)
+)
+);
+
+
+reset();
+setPlaylist('Playlist 1');
+};
+
+
+const clearForm = () => {
+reset();
+setPlaylist('Playlist 1');
+};
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !date || !start || !end) return;
@@ -143,68 +175,142 @@ const tasksByDate = useMemo(() => {
         {/* Form */}
         <section className="login-box p-4 rounded shadow">
           <h2 className="text-xl font-semibold mb-2">Dodaj zadanie</h2>
-          <form onSubmit={addTask} className="space-y-4 md:space-y-6">
-            <Input label="Nazwa zadania" value={name} onChange={(e)=>setName(e.target.value)} inputClassName={classinput} labelClassName={classlabel}/>
-            <div className="flex space-x-2">
-              <div className="flex-1"><label className={classlabel}>Data</label><input type="date" value={date} onChange={(e)=>setDate(e.target.value)} className={`${classinput} !p-0.5 text-sm`}/></div>
-              <div className="flex-1"><label className={classlabel}>Start</label><input type="time" value={start} onChange={(e)=>setStart(e.target.value)} className={`${classinput} !p-0.5 text-sm`}/></div>
-              <div className="flex-1"><label className={classlabel}>Koniec</label><input type="time" value={end} onChange={(e)=>setEnd(e.target.value)} className={`${classinput} !p-0.5 text-sm`}/></div>
-            </div>
-            <div><label className={classlabel}>Playlist</label><select value={playlist} onChange={(e)=>setPlaylist(e.target.value)} className={classinput}><option>Playlist 1</option><option>Playlist 2</option><option>Playlist 3</option></select></div>
-            <div className="flex space-x-2 mt-4">
-              <button type="button" onClick={clearForm} className="flex-1 log-in-e">Wyczyść</button>
-              <button type="submit" className="flex-1 log-in py-2">Dodaj</button>
-              
-            </div>
-          </form>
-        </section>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+<Input
+label="Nazwa zadania"
+{...register('taskname')}
+error={errors.taskname}
+inputClassName={classinput}
+labelClassName={classlabel}
+/>
+
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+<Input
+label="Data"
+type="date"
+{...register('dataaa')}
+error={errors.dataaa}
+inputClassName={classinput}
+labelClassName={classlabel}
+/>
+<Input
+label="Start"
+type="time"
+{...register('startg')}
+error={errors.startg}
+inputClassName={classinput}
+labelClassName={classlabel}
+/>
+
+
+<Input
+label="Koniec"
+type="time"
+{...register('endg')}
+error={errors.endg}
+inputClassName={classinput}
+labelClassName={classlabel}
+/>
+</div>
+
+
+<div>
+<label className={classlabel}>Playlist</label>
+<select
+value={playlist}
+onChange={(e) => setPlaylist(e.target.value)}
+className={classinput}
+>
+<option>Playlist 1</option>
+<option>Playlist 2</option>
+<option>Playlist 3</option>
+</select>
+</div>
+
+
+<div className="flex gap-2">
+<button type="button" onClick={clearForm} className="log-in-e flex-1 py-2">
+Wyczyść
+</button>
+<button type="submit" className="log-in flex-1 py-2">
+Dodaj
+</button>
+</div>
+</form>
+</section>
 
         {/* Tasks */}
         <section className="login-box p-4 rounded shadow space-y-6">
           {/* This week */}
           <div>
             <h2 className="text-lg font-semibold mb-2">Zadania na ten tydzień</h2>
-            {thisWeek.length===0?<p>Brak zadań w tym tygodniu.</p>:<ul className="space-y-2">{thisWeek.map(t=>(
-              <li key={t.id} className={`p-2 border rounded flex items-start ${t.active===false?'opacity-50':''}`}>
-                <input type="checkbox" checked={t.active===false} onChange={()=>toggleActive(t.id)} className="mr-3 mt-1"/>
-                <div className="flex-1">
-                  <div className={`font-medium ${t.active === false ? 'line-through' : ''}`}>{t.date} — {t.name}</div>
-                  <div className="text-xs">{t.start}-{t.end} • {t.playlist}</div>
-                </div>
-                <button onClick={()=>editTask(t.id)} className="text-xs log-in">Edytuj</button>
-              </li>
-            ))}</ul>}
+            {thisWeek.length === 0 ? (
+  <p>Brak zadań w tym tygodniu.</p>
+) : (
+  <ul className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+    {thisWeek.map((t) => (
+      <li
+        key={t.id}
+        className={`p-2 border rounded flex items-start group ${
+          t.active === false ? 'opacity-50' : ''
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={t.active === false}
+          onChange={() => toggleActive(t.id)}
+          className="mr-3 mt-1"
+        />
+        <div className="flex-1 relative">
+          <div className={`font-medium ${t.active === false ? 'line-through' : ''}`}>
+            {t.date} — {t.name}
+          </div>
+          <div className="text-xs">
+            {t.start}-{t.end} • {t.playlist}
+          </div>
+        </div>
+      </li>
+    ))}
+  </ul>
+)}
+
           </div>
 
           {/* Future weeks */}
           <div>
             <h2 className="text-lg font-semibold mb-2">Nadchodzące zadania</h2>
             <ul className="space-y-2">
-  {tasks.map((t) => (
-    <li
-      key={t.id}
-      className={`p-2 border rounded flex items-start group ${t.active === false ? 'opacity-50' : ''}`}
-    >
-      <input
-        type="checkbox"
-        checked={t.active === false}
-        onChange={() => toggleActive(t.id)}
-        className="mr-3 mt-1"
-      />
-      <div className="flex-1 relative">
-        <div className={`font-medium ${t.active === false ? 'line-through' : ''}`}>
-          {t.date} — {t.name}
+  {futureWeeks.length === 0 ? (
+  <p>Brak nadchodzących zadań.</p>
+) : (
+  <ul className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+    {futureWeeks.map((t) => (
+      <li
+        key={t.id}
+        className={`p-2 border rounded flex items-start group ${
+          t.active === false ? 'opacity-50' : ''
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={t.active === false}
+          onChange={() => toggleActive(t.id)}
+          className="mr-3 mt-1"
+        />
+        <div className="flex-1 relative">
+          <div className={`font-medium ${t.active === false ? 'line-through' : ''}`}>
+            {t.date} — {t.name}
+          </div>
+          <div className="text-xs">
+            {t.start}-{t.end} • {t.playlist}
+          </div>
         </div>
-        <div className="text-xs">{t.start}-{t.end} • {t.playlist}</div>
-        {/* Przycisk Edytuj - widoczny po najechaniu */}
-        <button
-          onClick={() => handleEditTask(t)}
-          className="log-in absolute top-0 right-0 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-        > Edytuj
-        </button>
-      </div>
-    </li>
-  ))}
+      </li>
+    ))}
+  </ul>
+)}
+
 </ul>
 
           </div>
