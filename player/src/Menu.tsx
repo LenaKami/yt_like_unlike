@@ -60,6 +60,7 @@ export const Menu = () => {
         <div className='login-box-size'><WaNavLink to={routes.STATISTICS.path}>Statystyki</WaNavLink></div>
         <div className='login-box-size'><WaNavLink to={routes.MUSIC.path}>Muzyka</WaNavLink></div>
         <div className='login-box-size'><WaNavLink to={routes.FRIENDS.path}>Znajomi</WaNavLink></div>
+        <div className='login-box-size'><WaNavLink to={routes.STATISTICS.path}>Statystyki</WaNavLink></div>
         {!isLoggedIn && (
           <>
             <div className='login-box-size'><WaNavLink to={routes.REGISTRATIONFORM.path}>Rejestracja</WaNavLink></div>

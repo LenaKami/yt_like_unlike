@@ -42,7 +42,7 @@ const useAuth = () => {
     if (DEV_BYPASS) {
       return {
         isLoggedIn: true,
-        username: "dev-user",
+        username: "",
         image: "",
         logIn: () => {},
         logOut: () => {},

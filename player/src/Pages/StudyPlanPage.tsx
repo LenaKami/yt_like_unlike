@@ -4,6 +4,7 @@ import { CalendarIcon } from '@heroicons/react/24/solid';
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { type StudyFormData, validationSchema } from "../types_plan";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { XMarkIcon,} from '@heroicons/react/24/solid';
 
 // ===== Types =====
 type Task = {
@@ -269,8 +270,12 @@ Dodaj
           <div className="text-xs">
             {t.start}-{t.end} • {t.playlist}
           </div>
+          <button onClick={()=>editTask(t.id)} className="log-in absolute top-0 right-0 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">Edytuj</button>
+          
         </div>
+            
       </li>
+      
     ))}
   </ul>
 )}
@@ -305,6 +310,8 @@ Dodaj
           <div className="text-xs">
             {t.start}-{t.end} • {t.playlist}
           </div>
+          <button onClick={()=>editTask(t.id)} className="log-in absolute top-0 right-0 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">Edytuj</button>
+          
         </div>
       </li>
     ))}
@@ -328,8 +335,14 @@ Dodaj
       {showCalendar && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="login-box p-4 rounded shadow w-full max-w-3xl relative">
-            <button onClick={()=>setShowCalendar(false)} className="absolute top-2 right-5 log-in px-2">✕</button>
-            
+            <button
+              onClick={() => {
+                setShowCalendar(false)
+              }}
+              className="absolute top-4 right-7 log-in-e text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button> 
             {/* Header with buttons next/prev */}
             <div className="flex items-center justify-start gap-4 mb-2">
               <h2 className="text-lg font-semibold">Kalendarz ({monthCursor.toLocaleString('pl-PL', { month: 'long', year: 'numeric' })})</h2>

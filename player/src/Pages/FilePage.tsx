@@ -129,7 +129,7 @@ export const FilePage = () => {
 
   const handleDownloadDocument = (docId: number) => {
     console.log('Downloading document:', docId);
-    setMessage('📥 Pobieranie dokumentu (mockup)...');
+    setMessage('📥 Pobieranie dokumentu...');
   };
 
   const handleAddDocument: SubmitHandler<FileFormData> = (data) => {
@@ -164,21 +164,18 @@ export const FilePage = () => {
     setShowAddModal(false);
   };
 
-  const handleAddFolder = () => {
-    if (!newFolderName) {
-      setMessage('❌ Podaj nazwę folderu');
-      return;
-    }
-    const newFolder: Folder = {
-      id: folders.length + 1,
-      name: newFolderName,
-      isExpanded: true,
-    };
-    setFolders([...folders, newFolder]);
-    setMessage('✅ Folder dodany');
-    setShowAddFolderModal(false);
-    setNewFolderName('');
+  const handleAddFolder: SubmitHandler<FileFormData> = async (data) => {
+  const newFolder: Folder = {
+    id: folders.length + 1,
+    name: data.foldername,
+    isExpanded: true,
   };
+
+  setFolders([...folders, newFolder]);
+  setShowAddFolderModal(false);
+  reset(); // z react-hook-form
+};
+
 
   const toggleFolder = (folderId: number) => {
     setFolders(folders.map(f => 
@@ -302,9 +299,9 @@ export const FilePage = () => {
                 setShowAddModal(false);
                 reset();
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="absolute top-4 right-7 log-in-e text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
-              <XMarkIcon className="w-6 h-6" />
+              <XMarkIcon className="w-6 h-6 " />
             </button>
             
             <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj materiał</h3>
@@ -361,13 +358,13 @@ export const FilePage = () => {
                     setShowAddModal(false);
                     reset();
                   }}
-                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+                  className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
                 >
                   Anuluj
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 log-in py-2 rounded-lg font-medium"
+                  className="flex-1 log-in py-2 font-medium"
                 >
                   Dodaj
                 </button>
@@ -380,48 +377,47 @@ export const FilePage = () => {
       {/* ADD FOLDER MODAL */}
       {showAddFolderModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+          <div className="login-box  p-6 w-full max-w-md relative">
             <button
               onClick={() => {
                 setShowAddFolderModal(false);
                 setNewFolderName('');
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="absolute top-4 right-7 log-in-e text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
-              <XMarkIcon className="w-6 h-6" />
+              <XMarkIcon className="w-6 h-6 " />
             </button>
             
             <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj folder</h3>
             
-            <div className="space-y-4">
-              <div>
-                <Input
-                  label="Nazwa folderu"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  inputClassName={classinput}
-                  labelClassName={classlabel}
-                />
-              </div>
-              
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowAddFolderModal(false);
-                    setNewFolderName('');
-                  }}
-                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
-                >
-                  Anuluj
-                </button>
-                <button
-                  onClick={handleAddFolder}
-                  className="flex-1 log-in py-2 rounded-lg font-medium"
-                >
-                  Dodaj
-                </button>
-              </div>
-            </div>
+            <form
+  onSubmit={handleSubmit(handleAddFolder)}
+  className="space-y-4 md:space-y-6"
+>
+  <Input
+    label="Nazwa folderu"
+    {...register('foldername', {
+      required: 'Podaj nazwę folderu',
+    })}
+    inputClassName={classinput}
+    labelClassName={classlabel}
+    error={errors.foldername}
+  />
+
+  <div className="flex gap-3 mt-6">
+    <button
+      type="button"
+      onClick={() => setShowAddFolderModal(false)}
+      className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
+    >
+      Anuluj
+    </button>
+
+    <button type="submit" className="flex-1 log-in py-2 font-medium">
+      Dodaj
+    </button>
+  </div>
+</form>
           </div>
         </div>
       )}
@@ -429,14 +425,14 @@ export const FilePage = () => {
       {/* SHARE MODAL */}
       {showShareModal && documentToShare && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+          <div className="login-box p-6 w-full max-w-md relative">
             <button
               onClick={() => {
                 setShowShareModal(false);
                 setDocumentToShare(null);
                 setSelectedFriends([]);
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="absolute top-4 right-7 log-in-e text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
@@ -455,7 +451,7 @@ export const FilePage = () => {
               {friends.map((friend) => (
                 <label
                   key={friend.id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition"
+                  className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition"
                 >
                   <input
                     type="checkbox"
@@ -475,13 +471,13 @@ export const FilePage = () => {
                   setDocumentToShare(null);
                   setSelectedFriends([]);
                 }}
-                className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+                className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
               >
                 Anuluj
               </button>
               <button
                 onClick={handleConfirmShare}
-                className="flex-1 log-in py-2 rounded-lg font-medium"
+                className="flex-1 log-in py-2 font-medium"
               >
                 Udostępnij ({selectedFriends.length})
               </button>

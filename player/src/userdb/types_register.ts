@@ -1,9 +1,9 @@
 import {z} from 'zod'
 
 export const validationSchema = z.object({
-    login: z.string().min(1, 'Login is required').min(7, "Login should be min 7 characters"),
-    email: z.string().email({message: 'Invalid e-mail'}),
-    password: z.string().min(1, 'Password is required').min(7, 'Login should be min 7 characters')
+    login: z.string().min(1, 'Wprowadź login').min(7, "Muszą być co najmniej 7 znaki"),
+    email: z.string().email({message: 'Nieprawidłowy format email'}).min(1, 'Wprowadź email'),
+    password: z.string().min(1, 'Wprowadź hasło').min(7, 'Hasło musi mieć co najmniej 7 znaków'),
 
 })
 

@@ -1,6 +1,8 @@
 //import { routes } from "../../routes";
 //import {WaNavLink} from '../../onkrzyczy'
 import { useAuthContext } from "../../Auth/AuthContext";
+import { WaNavLink } from '../../onkrzyczy';
+import { routes } from "../../routes";
 
 export const UserMenu = () => {
     const { isLoggedIn, username, image, logOut } = useAuthContext();
@@ -13,7 +15,7 @@ export const UserMenu = () => {
     return (
         <>
             {isLoggedIn ? (
-                <div className="flex flex-row items-center">
+                <div className="flex flex-col space-y-3 flex-grow items-center">
                     <p className="">{username}</p>
                     {/* Wyświetlanie obrazu użytkownika */}
                     {image ? (
@@ -26,7 +28,7 @@ export const UserMenu = () => {
                     ) : (
                         <p> </p>
                     )}
-                    <button className="log-in px-3 py-1" onClick={handleLogout}>Logout</button>
+                    <div className='login-box-size'><WaNavLink to={routes.REGISTRATIONFORM.path}>Wyloguj</WaNavLink></div>
                 </div>
             ) : (<>
             </>

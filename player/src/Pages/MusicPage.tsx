@@ -191,11 +191,11 @@ export const MusicPage = () => {
                         setShowAddSongModal(false);
                         resetSong();
                       }} 
-                      className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+                      className="flex-1 log-in-e py-2  bg-gray-500 hover:bg-gray-600"
                     >
                       Anuluj
                     </button>
-                    <button type="submit" className="flex-1 log-in py-2 rounded-lg font-medium">Dodaj</button>
+                    <button type="submit" className="flex-1 log-in py-2  font-medium">Dodaj</button>
                   </div>
                 </form>
               </div>
@@ -295,7 +295,7 @@ export const MusicPage = () => {
                       setShowAddPlaylistaModal(false);
                       resetPlaylist();
                     }}
-                    className="flex-1 log-in py-2"
+                    className="flex-1 log-in-e py-2"
                   >
                     Anuluj
                   </button>

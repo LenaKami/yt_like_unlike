@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { XMarkIcon,} from '@heroicons/react/24/solid';
 import { Input } from '../ui/Input/Input';
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { type FriendFormData, validationSchema } from "../types_friends";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type Friend = {
   id: string;
@@ -19,6 +22,9 @@ export const FriendsPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState('');
 
+    const { register, handleSubmit, formState: { errors }, reset } = useForm<FriendFormData>({
+      resolver: zodResolver(validationSchema),
+    });
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -46,6 +52,26 @@ export const FriendsPage = () => {
     setName('');
     setShowModal(false);
   };
+
+  const handleAddFriend: SubmitHandler<FriendFormData> = async (data) => {
+  const name = data.friend.trim();
+  if (!name) return;
+
+  const parts = name.split(/\s+/);
+  const firstName = parts.shift() ?? '';
+  const lastName = parts.join(' ');
+
+  const newFriend: Friend = {
+    id: String(Date.now()),
+    firstName,
+    lastName,
+  };
+
+  setFriends((prev) => [...prev, newFriend]);
+  reset();
+  setShowModal(false);
+};
+
 
   const removeFriend = (id: string) => setFriends((s) => s.filter((f) => f.id !== id));
 
@@ -107,7 +133,7 @@ export const FriendsPage = () => {
             onClick={() => setShowModal(true)}
             className="px-3 py-1 log-in"
           >
-            Dodaj
+            Dodaj znajomego
           </button>
         </div>
       </div>
@@ -165,13 +191,40 @@ export const FriendsPage = () => {
         <XMarkIcon className="w-6 h-6" />
       </button>
             <h2 className="text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">Dodaj znajomego</h2>
-            <div>
-              <Input label="Imię i nazwisko" value={name} onChange={(e) => setName(e.target.value)} inputClassName={classinput} labelClassName={classlabel}/>
-             </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button onClick={() => setShowModal(false)} className="px-3 py-1 border log-in-e ">Anuluj</button>
-              <button onClick={addFriend} className="px-3 py-1 log-in ">Dodaj</button>
-            </div>
+            <form
+  onSubmit={handleSubmit(handleAddFriend)}
+  className="space-y-4 md:space-y-6"
+>
+  <div>
+    <Input
+      label="Imię i nazwisko"
+      {...register('friend', {
+        required: 'Podaj imię i nazwisko',
+      })}
+      error={errors.friend}
+      inputClassName={classinput}
+      labelClassName={classlabel}
+    />
+  </div>
+
+  <div className="flex gap-3 mt-6">
+    <button
+      type="button"
+      onClick={() => setShowModal(false)}
+      className="flex-1 log-in-e py-2 font-medium"
+    >
+      Anuluj
+    </button>
+
+    <button
+      type="submit"
+      className="flex-1 log-in py-2 font-medium"
+    >
+      Dodaj
+    </button>
+  </div>
+</form>
+
           </div>
         </div>
       )}
