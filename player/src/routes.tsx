@@ -13,7 +13,7 @@ import { StatisticsPage } from './Pages/StatisticsPage';
 
 export const routes = {
   REGISTRATIONFORM: {
-    path: "/registration",
+    path: "/",
     // title:
   },
   /*DATAFETCHER: {

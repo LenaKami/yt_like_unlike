@@ -72,20 +72,21 @@ export const PlanNaukiPage = () => {
 useEffect(() => {
   const today = new Date();
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const sampleTasks: Task[] = [
-    { id: '1', name: 'React – useState', date: fmt(today), start: '10:00', end: '11:00', playlist: 'Playlist 1', active: true },
-    { id: '2', name: 'TypeScript – typy', date: fmt(new Date(today.getTime() + 86400000)), start: '12:00', end: '13:00', playlist: 'Playlist 2', active: true },
-    { id: '3', name: 'Algorytmy – sortowanie', date: fmt(new Date(today.getTime() + 2*86400000)), start: '09:00', end: '10:30', playlist: 'Playlist 3', active: true },
-    { id: '4', name: 'CSS Grid', date: fmt(new Date(today.getTime() + 7*86400000)), start: '14:00', end: '15:00', playlist: 'Playlist 1', active: true },
-    { id: '5', name: 'Backend – API', date: fmt(new Date(today.getTime() + 10*86400000)), start: '16:00', end: '17:30', playlist: 'Playlist 2', active: true },
+const sampleTasks: Task[] = [
+  { id: '1', name: 'Matematyka – Algebra', date: fmt(today), start: '10:00', end: '11:00', playlist: 'Lekcje 1', active: true },
+  { id: '2', name: 'Biologia – Genetyka', date: fmt(new Date(today.getTime() + 86400000)), start: '12:00', end: '13:00', playlist: 'Lekcje 2', active: true },
+  { id: '3', name: 'Fizyka – Ruch jednostajny', date: fmt(new Date(today.getTime() + 2*86400000)), start: '09:00', end: '10:30', playlist: 'Lekcje 3', active: true },
+  { id: '4', name: 'Chemia – Reakcje chemiczne', date: fmt(new Date(today.getTime() + 7*86400000)), start: '14:00', end: '15:00', playlist: 'Lekcje 1', active: true },
+  { id: '5', name: 'Historia – II wojna światowa', date: fmt(new Date(today.getTime() + 10*86400000)), start: '16:00', end: '17:30', playlist: 'Lekcje 2', active: true },
 
-    // nadchodzące przykłady
-    { id: 'u1', name: 'Projekt React', date: fmt(new Date(today.getTime() + 3*86400000)), start: '09:00', end: '10:00', playlist: 'Playlist 1', active: true },
-    { id: 'u2', name: 'TypeScript – Interfejsy', date: fmt(new Date(today.getTime() + 4*86400000)), start: '11:00', end: '12:00', playlist: 'Playlist 2', active: true },
-    { id: 'u3', name: 'Algorytmy – DFS', date: fmt(new Date(today.getTime() + 5*86400000)), start: '14:00', end: '15:00', playlist: 'Playlist 3', active: true },
-    { id: 'u4', name: 'Node.js – API', date: fmt(new Date(today.getTime() + 6*86400000)), start: '16:00', end: '17:00', playlist: 'Playlist 1', active: true },
-    { id: 'u5', name: 'CSS – Flexbox', date: fmt(new Date(today.getTime() + 7*86400000)), start: '18:00', end: '19:00', playlist: 'Playlist 2', active: true },
-  ];
+  // nadchodzące przykłady
+  { id: 'u1', name: 'Projekt z WOS – Samorząd uczniowski', date: fmt(new Date(today.getTime() + 3*86400000)), start: '09:00', end: '10:00', playlist: 'Lekcje 1', active: true },
+  { id: 'u2', name: 'Język polski – Analiza wiersza', date: fmt(new Date(today.getTime() + 4*86400000)), start: '11:00', end: '12:00', playlist: 'Lekcje 2', active: true },
+  { id: 'u3', name: 'Geografia – Klimat świata', date: fmt(new Date(today.getTime() + 5*86400000)), start: '14:00', end: '15:00', playlist: 'Lekcje 3', active: true },
+  { id: 'u4', name: 'Informatyka – Prezentacja PowerPoint', date: fmt(new Date(today.getTime() + 6*86400000)), start: '16:00', end: '17:00', playlist: 'Lekcje 1', active: true },
+  { id: 'u5', name: 'Sztuka – Rysunek perspektywiczny', date: fmt(new Date(today.getTime() + 7*86400000)), start: '18:00', end: '19:00', playlist: 'Lekcje 2', active: true },
+];
+
 
   setTasks(sampleTasks);
 }, []);

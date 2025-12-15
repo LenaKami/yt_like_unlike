@@ -17,11 +17,11 @@ export const HomePage = () => {
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: 't1',
-      name: 'Przerobić lekcję React Hooks',
+      name: 'Przerobić lekcję funkcja kwadratowa',
       date: '2025-12-16',
       start: '10:00',
       end: '11:30',
-      playlist: 'React zaawansowany',
+      playlist: 'Nauka',
       active: true,
     },
     {
@@ -30,7 +30,7 @@ export const HomePage = () => {
       date: '2025-12-17',
       start: '14:00',
       end: '15:00',
-      playlist: 'Algorytmy i struktury danych',
+      playlist: 'Nauka',
       active: true,
     },
   ]);
@@ -121,8 +121,8 @@ export const HomePage = () => {
             <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nowości</h2>
             <div className="space-y-3 text-slate-700 dark:text-slate-300">
               <p>Witaj! Sprawdź najnowsze materiały i aktualizacje.</p>
-              <div className="p-3 border rounded box">Nowy kurs: „React zaawansowany” — dodano 5 lekcji.</div>
-              <div className="p-3 border rounded box">Aktualizacja: poprawki w odtwarzaczu wideo.</div>
+              <div className="p-3 border rounded box">Kasia udostępnił/a „Historia Rzymu.pdf”.</div>
+              <div className="p-3 border rounded box">Marek udostępnił/a "Fizyka - dymanika.pdf".</div>
             </div>
           </section>
 
