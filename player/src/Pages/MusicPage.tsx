@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   XMarkIcon,
   PlusIcon,
@@ -7,11 +7,11 @@ import {
   PlayIcon,
   PauseIcon
 } from '@heroicons/react/24/solid';
-import ReactPlayer from 'react-player';
 import { Input } from "../ui";
-import { type MusicFormData, validationSchema } from "../types_music";
+import { type SongFormData, type PlaylistFormData, songValidationSchema, playlistValidationSchema } from "../types_music";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, type SubmitHandler } from "react-hook-form";
+import { useMusicContext } from "../Music/MusicContext";
 
 type MusicFolder = {
   id: number;
@@ -30,35 +30,33 @@ export const MusicPage = () => {
   const classinput = "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500";
   const classlabel = "block mb-2 text-sm font-medium text-white";
 
+  const {
+    currentSong,
+    isPlaying,
+    folders,
+    songs,
+    setFolders,
+    setSongs,
+    handlePlaySong,
+    getYouTubeThumbnail,
+  } = useMusicContext();
+
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [showAddPlaylistaModal, setShowAddPlaylistaModal] = useState(false);
   const [message, setMessage] = useState('');
-  const [currentSong, setCurrentSong] = useState<Song | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
 
-  const playerRef = useRef<ReactPlayer>(null);
-
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<MusicFormData>({
-    resolver: zodResolver(validationSchema)
+  // Formularz dla utworów
+  const { register: registerSong, handleSubmit: handleSubmitSong, formState: { errors: errorsSong }, reset: resetSong, watch: watchSong } = useForm<SongFormData>({
+    resolver: zodResolver(songValidationSchema)
   });
 
-  // Mockup folders
-  const [folders, setFolders] = useState<MusicFolder[]>([
-    { id: 1, name: 'Nauka', icon: '📚' },
-    { id: 2, name: 'Lokalizacja', icon: '📍' },
-    { id: 3, name: 'Gatunki', icon: '🎸' },
-    { id: 4, name: 'Znajomi', icon: '👥' },
-    { id: 5, name: 'Playlista1', icon: '🎵' },
-  ]);
+  // Formularz dla playlist
+  const { register: registerPlaylist, handleSubmit: handleSubmitPlaylist, formState: { errors: errorsPlaylist }, reset: resetPlaylist } = useForm<PlaylistFormData>({
+    resolver: zodResolver(playlistValidationSchema)
+  });
 
-  // Mockup songs
-  const [songs, setSongs] = useState<Song[]>([
-    { id: 1, name: 'Muzyka do nauki #1', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk', folderId: 1 },
-    { id: 2, name: 'Focus Music', youtubeUrl: 'https://www.youtube.com/watch?v=5qap5aO4i9A', folderId: 1 },
-  ]);
-
-  const handleAddSong: SubmitHandler<MusicFormData> = (data) => {
+  const handleAddSong: SubmitHandler<SongFormData> = (data) => {
     if (selectedFolder === null) return;
 
     const newSong: Song = {
@@ -69,9 +67,9 @@ export const MusicPage = () => {
     };
 
     setSongs(prev => [...prev, newSong]);
-    setMessage('✅ Utwór dodany (mockup)');
+    setMessage('✅ Utwór dodany');
     setShowAddSongModal(false);
-    reset();
+    resetSong();
   };
 
   const handleDeleteSong = (songId: number) => {
@@ -94,79 +92,19 @@ export const MusicPage = () => {
     }
   };
 
-  const handlePlaySong = (song: Song) => {
-    if (currentSong?.id === song.id) {
-      setIsPlaying(prev => !prev);
-    } else {
-      setCurrentSong(song);
-      setIsPlaying(true);
-    }
-  };
-
-  const handleTogglePlay = () => setIsPlaying(prev => !prev);
-  const handleStopSong = () => { setCurrentSong(null); setIsPlaying(false); };
-
-  const handleSongEnded = () => {
-    if (!currentSong) return;
-    const folderSongs = songs.filter(s => s.folderId === currentSong.folderId);
-    const currentIndex = folderSongs.findIndex(s => s.id === currentSong.id);
-    if (currentIndex < folderSongs.length - 1) {
-      setCurrentSong(folderSongs[currentIndex + 1]);
-      setIsPlaying(true);
-    } else {
-      setIsPlaying(false);
-    }
-  };
-
-  const getYouTubeThumbnail = (url: string) => {
-    const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
-    return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
-  };
-
   const currentFolderName = folders.find(f => f.id === selectedFolder)?.name || '';
   const currentFolderSongs = songs.filter(s => s.folderId === selectedFolder);
-
-  /** PLAYER COMPONENT */
-  const PlayerBar = () => {
-    if (!currentSong) return null;
-
-    return (
-      <div className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-4 z-50">
-        <div className="container mx-auto flex items-center gap-4">
-          <div className="w-16 h-16 bg-slate-700 rounded overflow-hidden flex-shrink-0">
-            <img src={getYouTubeThumbnail(currentSong.youtubeUrl)} alt={currentSong.name} className="w-full h-full object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-white truncate">{currentSong.name}</h4>
-            <p className="text-sm text-slate-400 truncate">{folders.find(f => f.id === currentSong.folderId)?.name}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={handleTogglePlay} className="p-3 bg-orange-500 hover:bg-orange-600 rounded-full transition">
-              {isPlaying ? <PauseIcon className="w-6 h-6 text-white" /> : <PlayIcon className="w-6 h-6 text-white" />}
-            </button>
-            <button onClick={handleStopSong} className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition">
-              <XMarkIcon className="w-5 h-5 text-white" />
-            </button>
-          </div>
-        </div>
-        <div className="hidden">
-          <ReactPlayer ref={playerRef} url={currentSong.youtubeUrl} playing={isPlaying} controls={false} width="0" height="0" onEnded={handleSongEnded} />
-        </div>
-      </div>
-    );
-  };
 
   /** RENDER: FOLDER VIEW */
   if (selectedFolder !== null) {
     return (
-      <>
-        <div className="login-box container mx-auto p-4 pb-24">
-          <div className="flex items-center gap-4 mb-4">
-            <button onClick={() => setSelectedFolder(null)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition">
-              <ArrowLeftIcon className="w-6 h-6 text-slate-900 dark:text-slate-100" />
-            </button>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{currentFolderName}</h1>
-          </div>
+      <div className="login-box container mx-auto p-4 pb-24">
+        <div className="flex items-center gap-4 mb-4">
+          <button onClick={() => setSelectedFolder(null)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition">
+            <ArrowLeftIcon className="w-6 h-6 text-slate-900 dark:text-slate-100" />
+          </button>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">{currentFolderName}</h1>
+        </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {currentFolderSongs.map((song) => (
@@ -208,16 +146,68 @@ export const MusicPage = () => {
           </div>
 
           {message && <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">{message}</p>}
-        </div>
-        <PlayerBar />
-      </>
+
+          {/* Modal dodawania utworu */}
+          {showAddSongModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+                <button
+                  onClick={() => { setShowAddSongModal(false); resetSong(); }}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                >
+                  <XMarkIcon className="w-6 h-6" />
+                </button>
+
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj utwór</h3>
+
+                <form onSubmit={handleSubmitSong(handleAddSong)} className="space-y-4 md:space-y-6">
+                  <Input
+                    label="Nazwa utworu"
+                    {...registerSong("namesong")}
+                    error={errorsSong.namesong}
+                    inputClassName={classinput}
+                    labelClassName={classlabel}
+                  />
+                  <Input
+                    label="Link do YouTube"
+                    {...registerSong("linkyt")}
+                    error={errorsSong.linkyt}
+                    inputClassName={classinput}
+                    labelClassName={classlabel}
+                  />
+
+                  {/* Preview */}
+                  {watchSong("linkyt") && (
+                    <div className="mt-3">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Podgląd:</p>
+                      <img src={getYouTubeThumbnail(watchSong("linkyt"))} alt="Preview" className="w-full rounded-lg" />
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 mt-6">
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setShowAddSongModal(false);
+                        resetSong();
+                      }} 
+                      className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+                    >
+                      Anuluj
+                    </button>
+                    <button type="submit" className="flex-1 log-in py-2 rounded-lg font-medium">Dodaj</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+      </div>
     );
   }
 
   /** RENDER: MAIN FOLDER VIEW */
   return (
-    <>
-      <div className="login-box container mx-auto p-4 pb-24">
+    <div className="login-box container mx-auto p-4 pb-24">
         <h1 className="text-2xl font-bold mb-6 text-slate-900 dark:text-slate-100">Muzyka</h1>
 
         <div className="login-box p-6 rounded shadow">
@@ -267,7 +257,7 @@ export const MusicPage = () => {
               <button
                 onClick={() => {
                   setShowAddPlaylistaModal(false);
-                  reset();
+                  resetPlaylist();
                 }}
                 className="absolute top-4 right-7 log-in-e"
               >
@@ -277,7 +267,7 @@ export const MusicPage = () => {
               <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj playlistę</h3>
 
               <form
-                onSubmit={handleSubmit((data) => {
+                onSubmit={handleSubmitPlaylist((data) => {
                   const newFolder: MusicFolder = {
                     id: Date.now(),
                     name: data.playlistName,
@@ -286,16 +276,16 @@ export const MusicPage = () => {
                   setFolders(prev => [...prev, newFolder]);
                   setShowAddPlaylistaModal(false);
                   setSelectedFolder(newFolder.id);
-                  reset();
+                  resetPlaylist();
                 })}
                 className="space-y-4 md:space-y-6"
               >
                 <Input
                   label="Nazwa playlisty"
-                  {...register('playlistName', { required: 'Wprowadź co najmniej 3 znaki' })}
+                  {...registerPlaylist('playlistName')}
                   inputClassName={classinput}
                   labelClassName={classlabel}
-                  error={errors.playlistName}
+                  error={errorsPlaylist.playlistName}
                 />
 
                 <div className="flex gap-3 mt-6">
@@ -303,7 +293,7 @@ export const MusicPage = () => {
                     type="button"
                     onClick={() => {
                       setShowAddPlaylistaModal(false);
-                      reset();
+                      resetPlaylist();
                     }}
                     className="flex-1 log-in py-2"
                   >
@@ -315,54 +305,6 @@ export const MusicPage = () => {
             </div>
           </div>
         )}
-
-        {/* Modal dodawania utworu */}
-        {showAddSongModal && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="login-box rounded-lg p-6 w-full max-w-md relative">
-              <button
-                onClick={() => { setShowAddSongModal(false); reset(); }}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj utwór</h3>
-
-              <form onSubmit={handleSubmit(handleAddSong)} className="space-y-4 md:space-y-6">
-                <Input
-                  label="Nazwa utworu"
-                  {...register("namesong", { required: "Podaj nazwę utworu" })}
-                  error={errors.namesong}
-                  inputClassName={classinput}
-                  labelClassName={classlabel}
-                />
-                <Input
-                  label="Link do YouTube"
-                  {...register("linkyt", { required: "Podaj link do YouTube" })}
-                  error={errors.linkyt}
-                  inputClassName={classinput}
-                  labelClassName={classlabel}
-                />
-
-                {/* Preview */}
-                {watch("linkyt") && (
-                  <div className="mt-3">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">Podgląd:</p>
-                    <img src={getYouTubeThumbnail(watch("linkyt"))} alt="Preview" className="w-full rounded-lg" />
-                  </div>
-                )}
-
-                <div className="flex gap-3 mt-6">
-                  <button type="button" onClick={() => reset()} className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600">Anuluj</button>
-                  <button type="submit" className="flex-1 log-in py-2 rounded-lg font-medium">Dodaj</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
-      <PlayerBar />
-    </>
   );
 };

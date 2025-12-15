@@ -8,6 +8,7 @@ import { router } from "./routes"
 import { ThemeContextProvider } from './Themee/ThemeContext';
 import { ThemeSwitcher } from './Themee/ThemeSwitcher';
 import { AuthContextProvider } from "./Auth/AuthContext";
+import { MusicContextProvider } from "./Music/MusicContext";
 
 
 function App() {
@@ -17,8 +18,10 @@ function App() {
       <main>
       <AuthContextProvider>
         <ThemeContextProvider>
-        <ThemeSwitcher/>
-        <RouterProvider router={router} />
+          <MusicContextProvider>
+            <ThemeSwitcher/>
+            <RouterProvider router={router} />
+          </MusicContextProvider>
         </ThemeContextProvider>
         </AuthContextProvider>
       </main>
