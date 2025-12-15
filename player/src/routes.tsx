@@ -9,6 +9,7 @@ import {FilePage} from "./Pages/FilePage";
 import { PlanNaukiPage } from './Pages/StudyPlanPage.tsx';
 import { FriendsPage } from './Pages/FriendsPage';
 import { MusicPage } from './Pages/MusicPage';
+import { StatisticsPage } from './Pages/StatisticsPage';
 
 export const routes = {
   REGISTRATIONFORM: {
@@ -41,6 +42,9 @@ export const routes = {
   },
   MUSIC: {
     path: "/music",
+  },
+  STATISTICS: {
+    path: "/statistics",
   },
 };
 
@@ -80,6 +84,10 @@ export const router = createBrowserRouter([
       {
         path: routes.FILE.path,
         element: <FilePage />,
+      },
+      {
+        path: routes.STATISTICS.path,
+        element: <StatisticsPage />,
       },
       {
         path: routes.MUSIC.path,
