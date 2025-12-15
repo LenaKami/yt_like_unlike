@@ -112,10 +112,10 @@ export const MusicPage = () => {
               <div key={song.id} className="login-box p-4 rounded shadow relative group">
                 <button
                   onClick={() => handleDeleteSong(song.id)}
-                  className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 z-10"
                   title="Usuń utwór"
                 >
-                  <TrashIcon className="w-4 h-4 text-white" />
+                  <TrashIcon className="w-4 h-4" />
                 </button>
 
                 <button onClick={() => handlePlaySong(song)} className="w-full">
@@ -231,10 +231,10 @@ export const MusicPage = () => {
                   {folder.id > 4 && (
                     <button
                       onClick={() => handleDeleteFolder(folder.id)}
-                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                      title="Usuń playlistę"
+                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 z-10"
+                  title="Usuń playlistę"
                     >
-                      <TrashIcon className="w-4 h-4 text-white" />
+                      <TrashIcon className="w-4 h-4" />
                     </button>
                   )}
 
