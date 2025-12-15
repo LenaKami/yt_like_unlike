@@ -119,7 +119,7 @@ export const MusicPage = () => {
                 </button>
 
                 <button onClick={() => handlePlaySong(song)} className="w-full">
-                  <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden mb-3 relative group">
+                  <div className="aspect-video  rounded-lg overflow-hidden mb-3 relative group">
                     <img src={getYouTubeThumbnail(song.youtubeUrl)} alt={song.name} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                       {currentSong?.id === song.id && isPlaying ? (
@@ -154,7 +154,7 @@ export const MusicPage = () => {
               <div className="login-box rounded-lg p-6 w-full max-w-md relative">
                 <button
                   onClick={() => { setShowAddSongModal(false); resetSong(); }}
-                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                  className="absolute top-4 right-7 log-in-e text-slate-900"
                 >
                   <XMarkIcon className="w-6 h-6" />
                 </button>
@@ -269,7 +269,7 @@ export const MusicPage = () => {
                   setShowAddPlaylistaModal(false);
                   resetPlaylist();
                 }}
-                className="absolute top-4 right-7 log-in-e"
+                className="absolute top-4 right-7 log-in-e text-slate-900"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>

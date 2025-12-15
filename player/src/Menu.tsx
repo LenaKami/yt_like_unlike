@@ -57,7 +57,6 @@ export const Menu = () => {
         <div className='login-box-size'><WaNavLink to={routes.HOME.path}>Start</WaNavLink></div>
         <div className='login-box-size'><WaNavLink to={routes.FILE.path}>Materiały</WaNavLink></div>
         <div className='login-box-size'><WaNavLink to={routes.PLAN.path}>Plan nauki</WaNavLink></div>
-        <div className='login-box-size'><WaNavLink to={routes.STATISTICS.path}>Statystyki</WaNavLink></div>
         <div className='login-box-size'><WaNavLink to={routes.MUSIC.path}>Muzyka</WaNavLink></div>
         <div className='login-box-size'><WaNavLink to={routes.FRIENDS.path}>Znajomi</WaNavLink></div>
         <div className='login-box-size'><WaNavLink to={routes.STATISTICS.path}>Statystyki</WaNavLink></div>

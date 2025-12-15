@@ -411,7 +411,7 @@ Dodaj
                 setEditingTask(null);
                 clearForm();
               }}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="absolute top-4 right-7 log-in-e text-slate-900"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
@@ -507,7 +507,7 @@ Dodaj
               onClick={() => {
                 setShowCalendar(false)
               }}
-              className="absolute top-4 right-7 log-in-e text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+              className="absolute top-4 right-7 log-in-e text-slate-900"
             >
               <XMarkIcon className="w-6 h-6" />
             </button> 

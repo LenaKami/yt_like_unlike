@@ -229,7 +229,7 @@ export const FriendsPage = () => {
       type="submit"
       className="flex-1 log-in py-2 font-medium"
     >
-      Dodaj
+      Wyślij zaproszenie
     </button>
   </div>
 </form>
