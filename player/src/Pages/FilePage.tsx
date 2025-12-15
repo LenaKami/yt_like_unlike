@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import ReactPlayer from 'react-player';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../Auth/AuthContext';
 import { Input } from "../ui"
 import { useForm, type SubmitHandler } from "react-hook-form";
-import { type FileFormData, validationSchema } from "../types_file";
+import { type FileFormData, documentValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
-import { HandThumbUpIcon, HandThumbDownIcon, DocumentIcon, PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 
 type PlayerYT = {
   _id: number;
@@ -23,12 +22,18 @@ type Document = {
   name: string;
   uploadDate: string;
   folderId: number;
+  fileType: 'pdf' | 'docx' | 'xlsx';
 };
 
 type Folder = {
   id: number;
   name: string;
   isExpanded: boolean;
+};
+
+type Friend = {
+  id: number;
+  name: string;
 };
 
 export const FilePage = () => {
@@ -42,32 +47,36 @@ export const FilePage = () => {
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
-  // Stan dla folderu (obsługiwany ręcznie, bez React Hook Form)
   const [newFolderName, setNewFolderName] = useState('');
-  
-  // Wybrane ID folderu do podświetlenia (opcjonalne)
-  const [selectedFolderId, setSelectedFolderId] = useState<number>(1);
+  const [documentToShare, setDocumentToShare] = useState<Document | null>(null);
+  const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   
   const navigate = useNavigate();
   const { username } = useAuthContext();
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FileFormData>({
-    resolver: zodResolver(validationSchema),
+    resolver: zodResolver(documentValidationSchema),
   });
 
-  // Mockup folders
   const [folders, setFolders] = useState<Folder[]>([
     { id: 1, name: 'Matematyka', isExpanded: true },
     { id: 2, name: 'Fizyka', isExpanded: false },
   ]);
 
-  // Mockup documents
   const [documents, setDocuments] = useState<Document[]>([
-    { id: 1, name: 'Całki', uploadDate: '2025-12-01', folderId: 1 },
-    { id: 2, name: 'Funkcja kwadratowa', uploadDate: '2025-12-05', folderId: 1 },
-    { id: 3, name: 'Wielomiany', uploadDate: '2025-12-08', folderId: 1 },
-    { id: 4, name: 'Funkcja liniowa', uploadDate: '2025-12-10', folderId: 1 },
+    { id: 1, name: 'Całki', uploadDate: '2025-12-01', folderId: 1, fileType: 'pdf' },
+    { id: 2, name: 'Funkcja kwadratowa', uploadDate: '2025-12-05', folderId: 1, fileType: 'docx' },
+    { id: 3, name: 'Wielomiany', uploadDate: '2025-12-08', folderId: 1, fileType: 'xlsx' },
+    { id: 4, name: 'Funkcja liniowa', uploadDate: '2025-12-10', folderId: 1, fileType: 'pdf' },
+  ]);
+
+  const [friends] = useState<Friend[]>([
+    { id: 1, name: 'Anna Kowalska' },
+    { id: 2, name: 'Jan Nowak' },
+    { id: 3, name: 'Maria Wiśniewska' },
+    { id: 4, name: 'Piotr Zieliński' },
   ]);
 
   useEffect(() => {
@@ -86,16 +95,36 @@ export const FilePage = () => {
     }
   };
 
-  const handleOnClickUpdate = (id: number) => {
-    navigate(`/update/${id}`);
+  const handleShareDocument = (docId: number) => {
+    const doc = documents.find(d => d.id === docId);
+    if (doc) {
+      setDocumentToShare(doc);
+      setSelectedFriends([]);
+      setShowShareModal(true);
+    }
   };
 
-  const handleOnClickDelete = async (id: number) => {
-    // ... (Twoja logika usuwania bez zmian)
+  const handleConfirmShare = () => {
+    if (selectedFriends.length === 0) {
+      setMessage('❌ Wybierz co najmniej jednego znajomego');
+      return;
+    }
+    const friendNames = friends
+      .filter(f => selectedFriends.includes(f.id))
+      .map(f => f.name)
+      .join(', ');
+    setMessage(`✅ Udostępniono "${documentToShare?.name}" dla: ${friendNames}`);
+    setShowShareModal(false);
+    setDocumentToShare(null);
+    setSelectedFriends([]);
   };
 
-  const handleOnClickLike = async (like: string, id: number) => {
-    // ... (Twoja logika like bez zmian)
+  const toggleFriendSelection = (friendId: number) => {
+    setSelectedFriends(prev => 
+      prev.includes(friendId) 
+        ? prev.filter(id => id !== friendId)
+        : [...prev, friendId]
+    );
   };
 
   const handleDownloadDocument = (docId: number) => {
@@ -103,15 +132,7 @@ export const FilePage = () => {
     setMessage('📥 Pobieranie dokumentu (mockup)...');
   };
 
-  const handleShareDocument = (docId: number, docName: string) => {
-    console.log('Sharing document:', docId, docName);
-    setMessage(`🔗 Udostępnianie: ${docName} (mockup)`);
-  };
-
-  // --- POPRAWIONA FUNKCJA DODAWANIA DOKUMENTU ---
   const handleAddDocument: SubmitHandler<FileFormData> = (data) => {
-    // Dane z formularza są w obiekcie 'data'
-    // data.file jest typu FileList, więc musimy pobrać pierwszy element
     const fileObj = data.file && data.file.length > 0 ? data.file[0] : null;
 
     if (!fileObj) {
@@ -119,22 +140,30 @@ export const FilePage = () => {
         return;
     }
 
+    const fileName = fileObj.name.toLowerCase();
+    let fileType: 'pdf' | 'docx' | 'xlsx' = 'pdf';
+    if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+      fileType = 'docx';
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      fileType = 'xlsx';
+    } else if (fileName.endsWith('.pdf')) {
+      fileType = 'pdf';
+    }
+
     const newDoc: Document = {
       id: documents.length + 1,
-      name: data.filename, // Pobieramy nazwę z inputa formularza
+      name: data.filename,
       uploadDate: new Date().toISOString().split('T')[0],
-      folderId: Number(data.folderId), // Pobieramy wybrane ID folderu
+      folderId: Number(data.folderId),
+      fileType: fileType,
     };
 
     setDocuments([...documents, newDoc]);
-    setMessage('✅ Dokument dodany (mockup)');
-    
-    // Resetujemy formularz i zamykamy modal
+    setMessage('✅ Dokument dodany');
     reset();
     setShowAddModal(false);
   };
 
-  // --- FUNKCJA DODAWANIA FOLDERU (Obsługa przez useState) ---
   const handleAddFolder = () => {
     if (!newFolderName) {
       setMessage('❌ Podaj nazwę folderu');
@@ -146,7 +175,7 @@ export const FilePage = () => {
       isExpanded: true,
     };
     setFolders([...folders, newFolder]);
-    setMessage('✅ Folder dodany (mockup)');
+    setMessage('✅ Folder dodany');
     setShowAddFolderModal(false);
     setNewFolderName('');
   };
@@ -155,6 +184,19 @@ export const FilePage = () => {
     setFolders(folders.map(f => 
       f.id === folderId ? { ...f, isExpanded: !f.isExpanded } : f
     ));
+  };
+
+  const getFileIcon = (fileType: 'pdf' | 'docx' | 'xlsx') => {
+    switch(fileType) {
+      case 'pdf':
+        return { icon: '📕', color: 'text-red-600' };
+      case 'docx':
+        return { icon: '📘', color: 'text-blue-600' };
+      case 'xlsx':
+        return { icon: '📗', color: 'text-green-600' };
+      default:
+        return { icon: '📄', color: 'text-gray-600' };
+    }
   };
 
   if (loading) return <div className="text-center text-white mt-10">Loading...</div>;
@@ -195,14 +237,20 @@ export const FilePage = () => {
                           >
                             <button
                               onClick={() => handleDownloadDocument(doc.id)}
-                              className="flex-1 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
+                              className="flex-1 flex items-center gap-3 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
                             >
-                              {doc.name}
+                              <span className="text-2xl">{getFileIcon(doc.fileType).icon}</span>
+                              <div className="flex flex-col">
+                                <span>{doc.name}</span>
+                                <span className={`text-xs ${getFileIcon(doc.fileType).color}`}>
+                                  {doc.fileType.toUpperCase()}
+                                </span>
+                              </div>
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleShareDocument(doc.id, doc.name);
+                                handleShareDocument(doc.id);
                               }}
                               className="p-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 rounded-full transition ml-2"
                               title="Udostępnij"
@@ -243,32 +291,31 @@ export const FilePage = () => {
         </div>
       </div>
 
-      <p className="text-green-200">message</p>
+      {message && <p className="mt-4 text-sm text-green-600 dark:text-green-400">{message}</p>}
 
-      {/* --- ADD MATERIAL MODAL --- */}
+      {/* ADD MATERIAL MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="login-box rounded-lg p-6 w-full max-w-md relative">
             <button
               onClick={() => {
                 setShowAddModal(false);
-                reset(); // Czyścimy formularz przy zamknięciu
+                reset();
               }}
-              className="absolute top-4 right-7 log-in-e"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
             
             <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-6">Dodaj materiał</h3>
             
-            <form onSubmit={handleSubmit(handleAddDocument)} className="space-y-4 md:space-y-6">
-              {/* Folder */}
+            <form onSubmit={handleSubmit(handleAddDocument)} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
                   Folder
                 </label>
                 <select
-                  {...register('folderId')} // Bez required: true, bo walidację robi Zod resolver
+                  {...register('folderId')}
                   className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
                 >
                   {folders.map((folder) => (
@@ -282,7 +329,6 @@ export const FilePage = () => {
                 )}
               </div>
 
-              {/* Nazwa dokumentu */}
               <div>
                 <Input
                   label="Nazwa pliku"
@@ -293,13 +339,13 @@ export const FilePage = () => {
                 />
               </div>
 
-              {/* Plik */}
               <div>
                 <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
-                  Wybierz plik
+                  Wybierz plik (PDF, DOCX, XLSX)
                 </label>
                 <input
                   type="file"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
                   {...register('file')}
                   className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
                 />
@@ -308,7 +354,6 @@ export const FilePage = () => {
                 )}
               </div>
 
-              {/* Akcje */}
               <div className="flex gap-3 mt-6">
                 <button
                   type="button"
@@ -316,14 +361,13 @@ export const FilePage = () => {
                     setShowAddModal(false);
                     reset();
                   }}
-                  className="flex-1 log-in-e py-2"
+                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
                 >
                   Anuluj
                 </button>
-
                 <button
                   type="submit"
-                  className="flex-1 log-in py-2 font-medium"
+                  className="flex-1 log-in py-2 rounded-lg font-medium"
                 >
                   Dodaj
                 </button>
@@ -333,7 +377,7 @@ export const FilePage = () => {
         </div>
       )}
 
-      {/* --- ADD FOLDER MODAL --- */}
+      {/* ADD FOLDER MODAL */}
       {showAddFolderModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="login-box rounded-lg p-6 w-full max-w-md relative">
@@ -342,7 +386,7 @@ export const FilePage = () => {
                 setShowAddFolderModal(false);
                 setNewFolderName('');
               }}
-              className="absolute top-4 right-7 log-in-e"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
@@ -351,9 +395,8 @@ export const FilePage = () => {
             
             <div className="space-y-4">
               <div>
-                {/* UWAGA: Ten input korzysta teraz ze stanu (useState), a nie register */}
                 <Input
-                  label="Nazwa folder"
+                  label="Nazwa folderu"
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   inputClassName={classinput}
@@ -367,17 +410,81 @@ export const FilePage = () => {
                     setShowAddFolderModal(false);
                     setNewFolderName('');
                   }}
-                  className="flex-1 log-in-e py-2"
+                  className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
                 >
                   Anuluj
                 </button>
                 <button
                   onClick={handleAddFolder}
-                  className="flex-1 log-in py-2"
+                  className="flex-1 log-in py-2 rounded-lg font-medium"
                 >
                   Dodaj
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SHARE MODAL */}
+      {showShareModal && documentToShare && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="login-box rounded-lg p-6 w-full max-w-md relative">
+            <button
+              onClick={() => {
+                setShowShareModal(false);
+                setDocumentToShare(null);
+                setSelectedFriends([]);
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+            
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              Udostępnij materiał
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+              {documentToShare.name}
+            </p>
+            
+            <div className="space-y-3 max-h-64 overflow-y-auto mb-6">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
+                Wybierz znajomych:
+              </p>
+              {friends.map((friend) => (
+                <label
+                  key={friend.id}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedFriends.includes(friend.id)}
+                    onChange={() => toggleFriendSelection(friend.id)}
+                    className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                  />
+                  <span className="text-slate-900 dark:text-slate-100">{friend.name}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowShareModal(false);
+                  setDocumentToShare(null);
+                  setSelectedFriends([]);
+                }}
+                className="flex-1 log-in py-2 rounded-lg bg-gray-500 hover:bg-gray-600"
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={handleConfirmShare}
+                className="flex-1 log-in py-2 rounded-lg font-medium"
+              >
+                Udostępnij ({selectedFriends.length})
+              </button>
             </div>
           </div>
         </div>
