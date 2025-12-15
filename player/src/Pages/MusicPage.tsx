@@ -5,7 +5,8 @@ import {
   ArrowLeftIcon,
   TrashIcon,
   PlayIcon,
-  PauseIcon
+  PauseIcon,
+  QuestionMarkCircleIcon
 } from '@heroicons/react/24/solid';
 import { Input } from "../ui";
 import { type SongFormData, type PlaylistFormData, songValidationSchema, playlistValidationSchema } from "../types_music";
@@ -208,7 +209,16 @@ export const MusicPage = () => {
   /** RENDER: MAIN FOLDER VIEW */
   return (
     <div className="login-box container mx-auto p-4 pb-24">
-        <h1 className="text-2xl font-bold mb-6 text-slate-900 dark:text-slate-100">Muzyka</h1>
+      <div className="flex items-center gap-2 mb-4">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Muzyka</h1>
+        <div className="group relative">
+          <QuestionMarkCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+          <div className="absolute left-0 top-8 w-64 p-3 bg-white text-slate-900 text-sm rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            Zarządzaj swoimi playlistami YouTube. Odtwarzacz działa globalnie we wszystkich widokach.
+            <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+          </div>
+        </div>
+      </div>
 
         <div className="login-box p-6 rounded shadow">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

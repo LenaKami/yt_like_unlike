@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChartBarIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
+import { ChartBarIcon, CheckCircleIcon, ClockIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 
 type DayStats = {
   day: string;
@@ -27,7 +27,16 @@ export const StatisticsPage = () => {
 
   return (
     <div className="login-box container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-slate-900 dark:text-slate-100">Statystyki</h1>
+      <div className="flex items-center gap-2 mb-6">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Statystyki</h1>
+        <div className="group relative">
+          <QuestionMarkCircleIcon className="w-6 h-6 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+          <div className="absolute left-0 top-10 w-64 p-3 bg-white text-slate-900 text-sm rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            Przeglądaj swoje postępy w nauce. Zobacz ilość wykonanych zadań i procent ukończenia.
+            <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+          </div>
+        </div>
+      </div>
 
       {/* Podsumowanie */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

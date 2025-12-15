@@ -5,7 +5,7 @@ import { Input } from "../ui"
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 
 type PlayerYT = {
   _id: number;
@@ -209,11 +209,29 @@ export const FilePage = () => {
 
   return (
     <div className="login-box container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4 text-slate-900 dark:text-slate-100">Materiały</h1>
+      <div className="flex items-center gap-2 mb-4">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Materiały</h1>
+        <div className="group relative">
+          <QuestionMarkCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+          <div className="absolute left-0 top-8 w-64 p-3 bg-white text-slate-900 text-sm rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            Zarządzaj swoimi materiałami edukacyjnymi. Organizuj pliki w foldery i udostępniaj je znajomym.
+            <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Box 1 - Twoje materiały */}
         <div className="login-box p-4 rounded shadow">
-          <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Twoje materiały</h2>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Twoje materiały</h2>
+            <div className="group relative">
+              <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+              <div className="absolute left-0 top-6 w-56 p-2 bg-white text-slate-900 text-xs rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                Kliknij folder aby rozwinąć. Użyj ikon do pobierania lub udostępniania plików.
+                <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+              </div>
+            </div>
+          </div>
           
           <div className="mb-4">
             {folders.map((folder) => (
@@ -292,7 +310,16 @@ export const FilePage = () => {
 
         {/* Box 2 - Materiały od znajomych */}
         <div className="login-box p-4 rounded shadow">
-          <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Materiały od znajomych</h2>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Materiały od znajomych</h2>
+            <div className="group relative">
+              <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+              <div className="absolute left-0 top-6 w-56 p-2 bg-white text-slate-900 text-xs rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                Tutaj zobaczysz pliki, które znajomi udostępnili Tobie.
+                <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+              </div>
+            </div>
+          </div>
           <p className="text-slate-700 dark:text-slate-300">Brak materiałów znajomych</p>
         </div>
       </div>

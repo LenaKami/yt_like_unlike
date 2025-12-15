@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Input } from '../ui/Input/Input';
-import { CalendarIcon } from '@heroicons/react/24/solid';
+import { CalendarIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { type StudyFormData, validationSchema } from "../types_plan";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -204,11 +204,29 @@ setPlaylist('Playlist 1');
 
   return (
     <div className="login-box container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Plan nauki</h1>
+      <div className="flex items-center gap-2 mb-4">
+        <h1 className="text-2xl font-bold">Plan nauki</h1>
+        <div className="group relative">
+          <QuestionMarkCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+          <div className="absolute left-0 top-8 w-64 p-3 bg-white text-slate-900 text-sm rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            Planuj swoją naukę dodając zadania z datami i godzinami. Oznaczaj wykonane zadania.
+            <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Form */}
         <section className="login-box p-4 rounded shadow">
-          <h2 className="text-xl font-semibold mb-2">Dodaj zadanie</h2>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="text-xl font-semibold">Dodaj zadanie</h2>
+            <div className="group relative">
+              <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+              <div className="absolute left-0 top-6 w-56 p-2 bg-white text-slate-900 text-xs rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                Wypełnij formularz aby dodać nowe zadanie do planu nauki. Możesz wybrać playlistę muzyczną.
+                <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+              </div>
+            </div>
+          </div>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 <Input
 label="Nazwa zadania"
@@ -278,7 +296,16 @@ Dodaj
         <section className="login-box p-4 rounded shadow space-y-6">
           {/* This week */}
           <div>
-            <h2 className="text-lg font-semibold mb-2">Zadania na ten tydzień</h2>
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-lg font-semibold">Zadania na ten tydzień</h2>
+              <div className="group relative">
+                <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+                <div className="absolute left-0 top-6 w-56 p-2 bg-white text-slate-900 text-xs rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  Zaznacz checkbox aby oznaczyć zadanie jako wykonane. Najedź na zadanie aby edytować.
+                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+                </div>
+              </div>
+            </div>
             {thisWeek.length === 0 ? (
   <p>Brak zadań w tym tygodniu.</p>
 ) : (
@@ -317,7 +344,16 @@ Dodaj
 
           {/* Future weeks */}
           <div>
-            <h2 className="text-lg font-semibold mb-2">Nadchodzące zadania</h2>
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-lg font-semibold">Nadchodzące zadania</h2>
+              <div className="group relative">
+                <QuestionMarkCircleIcon className="w-4 h-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+                <div className="absolute left-0 top-6 w-56 p-2 bg-white text-slate-900 text-xs rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  Zadania zaplanowane na kolejne tygodnie.
+                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+                </div>
+              </div>
+            </div>
             <ul className="space-y-2">
   {futureWeeks.length === 0 ? (
   <p>Brak nadchodzących zadań.</p>

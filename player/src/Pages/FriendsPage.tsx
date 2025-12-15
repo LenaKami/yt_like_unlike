@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { XMarkIcon,} from '@heroicons/react/24/solid';
+import { XMarkIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 import { Input } from '../ui/Input/Input';
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FriendFormData, validationSchema } from "../types_friends";
@@ -124,9 +124,18 @@ export const FriendsPage = () => {
       <div className="grid grid-cols-3 items-center mb-4">
         <div /> {/* lewa kolumna – pusta, dla równowagi świata */}
 
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-center">
-          Znajomi
-        </h1>
+        <div className="flex items-center justify-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            Znajomi
+          </h1>
+          <div className="group relative">
+            <QuestionMarkCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-help" />
+            <div className="absolute left-0 top-8 w-64 p-3 bg-white text-slate-900 text-sm rounded-lg shadow-xl border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              Zarządzaj listą swoich znajomych. Możesz im udostępniać materiały edukacyjne.
+              <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-slate-200 rotate-45"></div>
+            </div>
+          </div>
+        </div>
 
         <div className="flex justify-end">
           <button
