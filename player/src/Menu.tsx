@@ -54,15 +54,15 @@ export const Menu = () => {
 
       {/* Nawigacja */}
       <nav className="flex flex-col space-y-3 flex-grow">
-        <WaNavLink to={routes.HOME.path}>Start</WaNavLink>
-        <WaNavLink to={routes.FILE.path}>Materiały</WaNavLink>
-        <WaNavLink to={routes.PLAN.path}>Plan nauki</WaNavLink>
-        <WaNavLink to={routes.MUSIC.path}>Muzyka</WaNavLink>
-        <WaNavLink to={routes.FRIENDS.path}>Znajomi</WaNavLink>
+        <div className='login-box-size'><WaNavLink to={routes.HOME.path}>Start</WaNavLink></div>
+        <div className='login-box-size'><WaNavLink to={routes.FILE.path}>Materiały</WaNavLink></div>
+        <div className='login-box-size'><WaNavLink to={routes.PLAN.path}>Plan nauki</WaNavLink></div>
+        <div className='login-box-size'><WaNavLink to={routes.MUSIC.path}>Muzyka</WaNavLink></div>
+        <div className='login-box-size'><WaNavLink to={routes.FRIENDS.path}>Znajomi</WaNavLink></div>
         {!isLoggedIn && (
           <>
-            <WaNavLink to={routes.REGISTRATIONFORM.path}>Rejestracja</WaNavLink>
-            <WaNavLink to={routes.LOGINFORM.path}>Logowanie</WaNavLink>
+            <div className='login-box-size'><WaNavLink to={routes.REGISTRATIONFORM.path}>Rejestracja</WaNavLink></div>
+            <div className='login-box-size'><WaNavLink to={routes.LOGINFORM.path}>Logowanie</WaNavLink></div>
           </>
         )}
       </nav>

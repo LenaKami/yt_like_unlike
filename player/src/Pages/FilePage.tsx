@@ -243,7 +243,7 @@ export const FilePage = () => {
         </div>
       </div>
 
-      {message && <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">{message}</p>}
+      <p className="text-green-200">message</p>
 
       {/* --- ADD MATERIAL MODAL --- */}
       {showAddModal && (

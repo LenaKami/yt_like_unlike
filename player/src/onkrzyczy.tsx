@@ -11,7 +11,7 @@ export const WaNavLink = ({ to, children }: Props) => {
         className={({ isActive}) =>
           isActive
             ? "text-white login-box-size"
-            : "menulink login-box-size"
+            : "menulink "
         }
       >
         {children}

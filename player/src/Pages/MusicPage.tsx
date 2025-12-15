@@ -258,6 +258,7 @@ export const MusicPage = () => {
             </button>
           </div>
         </div>
+        <p className="text-green-200">message</p>
 
         {/* Modal dodawania playlisty */}
         {showAddPlaylistaModal && (
@@ -361,7 +362,6 @@ export const MusicPage = () => {
           </div>
         )}
       </div>
-
       <PlayerBar />
     </>
   );
