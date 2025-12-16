@@ -166,6 +166,7 @@ export const FriendsPage = () => {
             </ul>
           )}
         </div>
+        
 
         {/* WSZYSCY */}
         <div>
@@ -183,6 +184,52 @@ export const FriendsPage = () => {
                 <FriendListItem key={f.id} f={f} />
               ))}
             </ul>
+          )}
+        </div>
+
+        <div>
+          <h2 className="text-xl font-semibold mb-3 text-slate-900 dark:text-slate-100">
+            Zaproszenia od znajomych
+          </h2>
+
+          {activeFriends.length === 0 ? (
+            <p className="text-slate-600 dark:text-slate-400">
+              Brak aktywnych znajomych
+            </p>
+          ) : (
+            <ul className="space-y-3">
+  {allFriends
+    .filter(f => f.id === 'm3')
+    .map(f => (
+      <li
+        key={f.id}
+        className="flex items-center justify-between gap-4"
+      >
+        {/* znajomy */}
+        <FriendListItem f={f} />
+
+        {/* przyciski */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+
+            className="log-in-e px-4 py-2 font-medium"
+          >
+            Odrzuć
+          </button>
+
+          <button
+            type="submit"
+            className="log-in px-4 py-2 font-medium"
+          >
+            Akceptuj
+          </button>
+        </div>
+      </li>
+    ))}
+</ul>
+
+
           )}
         </div>
       </section>
