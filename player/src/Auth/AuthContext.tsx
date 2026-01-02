@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from 'jwt-decode';
 
-const DEV_BYPASS = true;
+const DEV_BYPASS = false;
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -86,18 +86,33 @@ const useAuth = () => {
         }
     }, []);
     useEffect(() => {
+      // Sprawdzanie ważności JWT i automatyczne wylogowanie
       const interval = setInterval(() => {
-        if(expiration != 0){
-          console.log(Math.floor(Date.now() / 1000))
-         if(( expiration < Math.floor(Date.now() / 1000))){
-          console.log("Automatyczne wylogowanie")
-          logOut()
-         }
+        if (expiration !== 0) {
+          if (expiration < Math.floor(Date.now() / 1000)) {
+            console.log("Automatyczne wylogowanie");
+            logOut();
+          }
         }
       }, 6000);
-
       return () => clearInterval(interval);
     }, [expiration]);
+
+    useEffect(() => {
+      // Ping do backendu co 30 sekund, aby odświeżać last_active
+      const pingInterval = setInterval(() => {
+        const token = localStorage.getItem('jwtToken');
+        if (token) {
+          fetch('/api/user/ping', {
+            method: 'GET',
+            headers: {
+              'Authorization': token
+            }
+          });
+        }
+      }, 30000); // 30 sekund
+      return () => clearInterval(pingInterval);
+    }, [isLoggedIn]);
     return { isLoggedIn, username,image, logIn, logOut,isAdmin };
 };
 

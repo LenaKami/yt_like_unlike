@@ -22,6 +22,10 @@ const User = sequelize.define("User", {
     role: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    last_active: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
     }
 }, {
     timestamps: false

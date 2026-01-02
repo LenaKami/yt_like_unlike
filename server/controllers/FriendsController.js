@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS FileShares (
   id INT AUTO_INCREMENT PRIMARY KEY,
   file_id INT NOT NULL,
   shared_with VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (file_id) REFERENCES Files(id) ON DELETE CASCADE
 );
 `;
@@ -114,6 +115,37 @@ module.exports.getFriends = async (req, res) => {
 
     const friends = JSON.parse(rows[0].friends || "[]");
     res.status(200).json({ status: 200, data: friends });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};
+
+// 🔹 Pobieranie aktywnych (online) znajomych — last_active w Users
+module.exports.getOnlineFriends = async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const [rows] = await db
+      .promise()
+      .query("SELECT friends FROM Friends WHERE username = ?", [username]);
+
+    if (rows.length === 0) {
+      return res.status(200).json({ status: 200, data: [] });
+    }
+
+    const friends = JSON.parse(rows[0].friends || "[]").map((f) => f.trim());
+
+    if (friends.length === 0) {
+      return res.status(200).json({ status: 200, data: [] });
+    }
+
+    // Pobierz użytkowników z last_active w ostatnich 2 minutach
+    const placeholders = friends.map(() => "?").join(",");
+    const query = `SELECT login, email, profile_picture, last_active FROM Users WHERE login IN (${placeholders}) AND last_active >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)`;
+
+    const [onlineRows] = await db.promise().query(query, friends);
+
+    res.status(200).json({ status: 200, data: onlineRows });
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });
   }
@@ -292,6 +324,38 @@ module.exports.getFilesSharedWithUser = async (req, res) => {
     );
 
     res.status(200).json({ status: 200, data: rows });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};
+
+// 🔹 Pobieranie 3 najnowszych plików udostępnionych przez znajomych użytkownika
+module.exports.getRecentSharedByFriends = async (req, res) => {
+  const { username } = req.params;
+  try {
+    // Pobierz znajomych użytkownika
+    const [friendsRows] = await db
+      .promise()
+      .query("SELECT friends FROM Friends WHERE username = ?", [username]);
+    if (!friendsRows.length) {
+      return res.status(200).json({ status: 200, data: [] });
+    }
+    const friends = JSON.parse(friendsRows[0].friends || "[]");
+    if (!friends.length) {
+      return res.status(200).json({ status: 200, data: [] });
+    }
+    // Pobierz 3 najnowsze pliki udostępnione userowi przez znajomych
+    const placeholders = friends.map(() => "?").join(",");
+    const [files] = await db.promise().query(
+      `SELECT f.* FROM Files f
+        JOIN FileShares fs ON f.id = fs.file_id
+        WHERE fs.shared_with = ? AND f.username IN (${placeholders})
+          AND f.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        ORDER BY f.created_at DESC LIMIT 3`,
+      [username, ...friends]
+    );
+    res.status(200).json({ status: 200, data: files });
+    console.log(files);
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });
   }

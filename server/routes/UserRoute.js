@@ -1,17 +1,21 @@
-var express = require('express');
+var express = require("express");
 var router = express.Router();
 
-var UserController = require('../controllers/UserController')
-var ValidationController = require('../controllers/ValidationController')
+var UserController = require("../controllers/UserController");
+var ValidationController = require("../controllers/ValidationController");
+var { authenticate } = require("../controllers/authorizationController");
 
-router.post('/register',
+router.post(
+  "/register",
   ValidationController.validationRegister,
   ValidationController.checkValidation,
   UserController.register
-)
-router.get('/test',(req,res) => {
-  res.json({status:201})
-})
+);
+
+// Ping endpoint do odświeżania last_active
+router.get("/ping", authenticate, (req, res) => {
+  res.json({ status: "ok" });
+});
 
 //router.post('/login', UserController.login)
 

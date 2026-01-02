@@ -10,6 +10,7 @@ const db = require("./database/db.js");
 var playerRouter = require("./routes/PlayerRoute.js");
 var fileRouter = require("./routes/FileRouter.js");
 var friendRouter = require("./routes/FriendRouter.js");
+var friendRequestsRouter = require("./routes/FriendRequestsRouter.js");
 const multer = require("multer");
 const fs = require("fs");
 
@@ -27,7 +28,8 @@ const createUsersTableQuery = `
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role BOOLEAN DEFAULT FALSE,
-    profile_picture VARCHAR(255) DEFAULT 'default.png'
+    profile_picture VARCHAR(255) DEFAULT 'default.png',
+    last_active TIMESTAMP NULL DEFAULT NULL
   );
 `;
 
@@ -37,6 +39,14 @@ db.promise()
   .catch((err) =>
     console.error("❌ Błąd przy tworzeniu tabeli Users:", err.message)
   );
+
+// Spróbuj dodać kolumnę last_active jeśli nie istnieje (bez przerywania przy błędzie)
+db.promise()
+  .query(
+    "ALTER TABLE Users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP NULL"
+  )
+  .then(() => console.log("✅ Kolumna last_active sprawdzona/dodana"))
+  .catch(() => {});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -50,6 +60,7 @@ app.use(
 app.use("/player", playerRouter);
 app.use("/file", fileRouter);
 app.use("/friend", friendRouter);
+app.use("/friend/requests", friendRequestsRouter);
 
 // ============================
 // 📌 Rejestracja użytkownika
@@ -144,6 +155,45 @@ app.post("/user/login", async function (req, res) {
   } catch (err) {
     console.error("❌ Błąd przy logowaniu:", err);
     res.status(500).json({ message: "Błąd serwera", error: err.message });
+  }
+});
+
+// Aktualizuj pole last_active dla użytkownika
+app.post("/user/active", async function (req, res) {
+  try {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ message: "Brak username" });
+
+    await db
+      .promise()
+      .query("UPDATE Users SET last_active = NOW() WHERE login = ?", [
+        username,
+      ]);
+    res.status(200).json({ message: "OK" });
+  } catch (err) {
+    console.error("❌ Błąd przy aktualizacji last_active:", err);
+    res.status(500).json({ message: "Błąd serwera" });
+  }
+});
+
+// Wyszukiwanie użytkowników po prefiksie (query param `query`)
+app.get("/user/search", async function (req, res) {
+  try {
+    const q = (req.query.query || "").toString().trim();
+    if (!q) return res.status(200).json({ data: [] });
+
+    const like = q + "%";
+    const [rows] = await db
+      .promise()
+      .query(
+        "SELECT login, profile_picture FROM Users WHERE login LIKE ? LIMIT 10",
+        [like]
+      );
+
+    res.status(200).json({ data: rows });
+  } catch (err) {
+    console.error("❌ Błąd przy wyszukiwaniu użytkowników:", err);
+    res.status(500).json({ message: "Błąd serwera" });
   }
 });
 

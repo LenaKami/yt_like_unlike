@@ -1,5 +1,16 @@
+
 import { useEffect, useState } from 'react';
 import { Text } from '../ui/Text/Text';
+import { useAuthContext } from '../Auth/AuthContext';
+
+type SharedFile = {
+  id: number;
+  username: string;
+  filename: string;
+  category: string;
+  filepath: string;
+  created_at: string;
+};
 
 type Task = {
   id: string;
@@ -11,9 +22,19 @@ type Task = {
   active?: boolean;
 };
 
+
+
+type Friend = {
+  id: string; // login
+  name: string;
+  avatar?: string;
+  active?: boolean;
+};
+
 const STORAGE_KEY = 'studyPlanTasks';
 
 export const HomePage = () => {
+  const [recentSharedFiles, setRecentSharedFiles] = useState<SharedFile[]>([]);
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: 't1',
@@ -34,6 +55,73 @@ export const HomePage = () => {
       active: true,
     },
   ]);
+
+
+  const [friends, setFriends] = useState<{
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    avatar?: string;
+    active?: boolean;
+  }[]>([]);
+  const auth = useAuthContext();
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+  useEffect(() => {
+    const fetchRecentSharedFiles = async () => {
+      if (!auth.username) return;
+      try {
+        const token = localStorage.getItem('jwtToken');
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${API_BASE}/file/recent-shared-by-friends/${auth.username}`, { headers });
+        const json = await res.json();
+        if (json.status === 200 && Array.isArray(json.data)) {
+          setRecentSharedFiles(json.data);
+        } else {
+          setRecentSharedFiles([]);
+        }
+      } catch (err) {
+        setRecentSharedFiles([]);
+      }
+    };
+    fetchRecentSharedFiles();
+  }, [auth.username]);
+
+  useEffect(() => {
+    if (!auth.username) return;
+    fetchOnlineFriends();
+    // Optionally, poll every 60s for live updates
+    const interval = setInterval(fetchOnlineFriends, 60000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.username]);
+
+  const fetchOnlineFriends = async () => {
+    try {
+      const token = localStorage.getItem('jwtToken');
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE}/friend/online/${auth.username}`, { headers });
+      const json = await res.json();
+      // json.data is array of { login, profile_picture, first_name, last_name }
+      const list: Friend[] = (json.data || []).map((u: any) => ({
+        id: u.login,
+        firstName: u.first_name || u.login,
+        lastName: u.last_name || '',
+        avatar: u.profile_picture,
+        active: true,
+      }));
+      setFriends(list);
+    } catch (err) {
+      console.error('fetchOnlineFriends error', err);
+    }
+  };
+
+  const getInitials = (first?: string, last?: string) => {
+    const parts = `${first || ''} ${last || ''}`.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
 
   const loadTasks = () => {
     try {
@@ -74,39 +162,10 @@ export const HomePage = () => {
 
   const upcoming = tasks.slice(0, 5);
 
-  const [friends, setFriends] = useState<
-    { id: string; firstName: string; lastName: string; avatar?: string; active?: boolean }[]
-  >([]);
 
-  const mockFriends = [
-    { id: 'm1', firstName: 'Agnieszka', lastName: 'Kowalska', avatar: 'https://i.pravatar.cc/150?img=32', active: true },
-    { id: 'm2', firstName: 'Marek', lastName: 'Nowak', avatar: 'https://i.pravatar.cc/150?img=12', active: true },
-    { id: 'm4', firstName: 'Tomasz', lastName: 'Zieliński', avatar: 'https://i.pravatar.cc/150?img=7', active: true },
-  ];
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('friendsList');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setFriends(parsed);
-          return;
-        }
-      }
-      setFriends(mockFriends);
-    } catch (e) {
-      console.error('Failed to read friends from storage', e);
-      setFriends(mockFriends);
-    }
-  }, []);
 
-  const getInitials = (first: string, last: string) => {
-    const parts = `${first} ${last}`.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '';
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  };
+
 
   return (
     <div className="login-box container mx-auto p-4">
@@ -121,8 +180,16 @@ export const HomePage = () => {
             <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nowości</h2>
             <div className="space-y-3 text-slate-700 dark:text-slate-300">
               <p>Witaj! Sprawdź najnowsze materiały i aktualizacje.</p>
-              <div className="p-3 border rounded box">Kasia udostępnił/a „Historia Rzymu.pdf”.</div>
-              <div className="p-3 border rounded box">Marek udostępnił/a "Fizyka - dymanika.pdf".</div>
+              {recentSharedFiles.length === 0 ? (
+                console.log(recentSharedFiles.length),
+                <div className="text-slate-400">Brak nowych plików udostępnionych przez znajomych w ostatnich 7 dniach.</div>
+              ) : (
+                recentSharedFiles.map((f) => (
+                  <div key={f.id} className="p-3 border rounded box">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{f.username}</span> udostępnił/a „{f.filename}” ({new Date(f.created_at).toLocaleDateString()})
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
@@ -148,7 +215,7 @@ export const HomePage = () => {
                         className="mr-3 mt-1"
                       />
                       <div className="flex-1 relative">
-                        <div className={`font-medium ${t.active === false ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>
+                        <div className={`font-medium ${t.active === false ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}> 
                           {t.date} — {t.name}
                         </div>
                         <div className="text-xs">
@@ -167,7 +234,7 @@ export const HomePage = () => {
         <section className="login-box p-4 rounded shadow">
           <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Aktywni znajomi</h2>
           {friends.length === 0 ? (
-            <Text>Brak znajomych.</Text>
+            <Text>Brak znajomych online.</Text>
           ) : (
             <ul className="space-y-3">
               {friends.slice(0, 6).map((f) => (
@@ -180,9 +247,7 @@ export const HomePage = () => {
                         className="h-10 w-10 rounded-full object-cover"
                       />
                       <span
-                        className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 ${
-                          f.active ? 'bg-green-400' : 'bg-gray-400'
-                        }`}
+                        className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 bg-green-400`}
                       />
                     </div>
                   ) : (

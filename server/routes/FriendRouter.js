@@ -5,6 +5,9 @@ const FriendController = require("../controllers/FriendsController");
 // Dodawanie znajomego
 router.post("/add", FriendController.addFriend);
 
+// Pobieranie aktywnych znajomych
+router.get("/online/:username", FriendController.getOnlineFriends);
+
 // Pobieranie znajomych
 router.get("/:username", FriendController.getFriends);
 
