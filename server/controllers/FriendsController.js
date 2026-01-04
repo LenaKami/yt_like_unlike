@@ -360,3 +360,75 @@ module.exports.getRecentSharedByFriends = async (req, res) => {
     res.status(400).json({ status: 400, message: err.message });
   }
 };
+
+// 🔹 Udostępnianie pliku wybranym użytkownikom
+module.exports.shareFileWithUsers = async (req, res) => {
+  const { file_id, usernames } = req.body; // usernames to tablica loginów
+
+  if (!file_id || !Array.isArray(usernames) || usernames.length === 0) {
+    return res.status(400).json({
+      status: 400,
+      message: "Wymagane: file_id i usernames (tablica)",
+    });
+  }
+
+  try {
+    // Sprawdź czy plik istnieje
+    const [files] = await db
+      .promise()
+      .query("SELECT * FROM Files WHERE id = ?", [file_id]);
+
+    if (files.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: "Plik nie istnieje",
+      });
+    }
+
+    // Sprawdź które użytkownicy istnieją
+    const placeholders = usernames.map(() => "?").join(",");
+    const [existingUsers] = await db
+      .promise()
+      .query(`SELECT login FROM Users WHERE login IN (${placeholders})`, usernames);
+
+    const validUsernames = existingUsers.map((u) => u.login);
+
+    if (validUsernames.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Żaden z podanych użytkowników nie istnieje",
+      });
+    }
+
+    // Sprawdź już istniejące udostępnienia
+    const [existingShares] = await db
+      .promise()
+      .query("SELECT shared_with FROM FileShares WHERE file_id = ?", [file_id]);
+
+    const alreadyShared = existingShares.map((s) => s.shared_with);
+    const newShared = validUsernames.filter((u) => !alreadyShared.includes(u));
+
+    if (newShared.length === 0) {
+      return res.status(400).json({
+        status: 400,
+        message: "Plik jest już udostępniony wybranym użytkownikom",
+      });
+    }
+
+    // Dodaj nowe udostępnienia
+    const insertValues = newShared.map((username) => [file_id, username]);
+    await db
+      .promise()
+      .query("INSERT INTO FileShares (file_id, shared_with) VALUES ?", [
+        insertValues,
+      ]);
+
+    res.status(200).json({
+      status: 200,
+      message: "✅ Plik udostępniony pomyślnie",
+      shared_to: newShared,
+    });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};

@@ -6,12 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
-import { fileApi, type FileFromBackend, type FolderFromBackend } from '../api/fileApi';
-
-type Friend = {
-  id: number;
-  name: string;
-};
+import { fileApi, type FileFromBackend, type FolderFromBackend, type User } from '../api/fileApi';
 
 export const FilePage = () => {
   const classinput =
@@ -46,13 +41,9 @@ export const FilePage = () => {
 
   const [folders, setFolders] = useState<FolderFromBackend[]>([]);
   const [documents, setDocuments] = useState<FileFromBackend[]>([]);
-
-  const [friends] = useState<Friend[]>([
-    { id: 1, name: 'Anna Kowalska' },
-    { id: 2, name: 'Jan Nowak' },
-    { id: 3, name: 'Maria Wiśniewska' },
-    { id: 4, name: 'Piotr Zieliński' },
-  ]);
+  const [sharedDocuments, setSharedDocuments] = useState<FileFromBackend[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   useEffect(() => {
     if (username) {
@@ -70,13 +61,18 @@ export const FilePage = () => {
     
     setLoading(true);
     try {
-      const [foldersData, filesData] = await Promise.all([
+      const [foldersData, filesData, sharedFilesData, usersData] = await Promise.all([
         fileApi.getUserFolders(username),
-        fileApi.getUserFiles(username)
+        fileApi.getUserFiles(username),
+        fileApi.getSharedFiles(username),
+        fileApi.getAllUsers()
       ]);
       
       setFolders(foldersData);
       setDocuments(filesData);
+      setSharedDocuments(sharedFilesData);
+      // Filtruj użytkowników - usuń zalogowanego użytkownika z listy
+      setUsers(usersData.filter(u => u.login !== username));
     } catch (error) {
       console.error('Error fetching data:', error);
       setMessage('❌ Błąd podczas ładowania danych. Sprawdź czy backend działa.');
@@ -89,31 +85,38 @@ export const FilePage = () => {
     const doc = documents.find(d => d.id === docId);
     if (doc) {
       setDocumentToShare(doc);
-      setSelectedFriends([]);
+      setSelectedUsers([]);
       setShowShareModal(true);
     }
   };
 
-  const handleConfirmShare = () => {
-    if (selectedFriends.length === 0) {
-      setMessage('❌ Wybierz co najmniej jednego znajomego');
+  const handleConfirmShare = async () => {
+    if (selectedUsers.length === 0) {
+      setMessage('❌ Wybierz co najmniej jednego użytkownika');
       return;
     }
-    const friendNames = friends
-      .filter(f => selectedFriends.includes(f.id))
-      .map(f => f.name)
-      .join(', ');
-    setMessage(`✅ Udostępniono "${documentToShare?.filename}" dla: ${friendNames}`);
+    if (!documentToShare) return;
+
+    setMessage('📤 Udostępnianie pliku...');
+    const result = await fileApi.shareFile(documentToShare.id, selectedUsers);
+
+    if (result.success) {
+      setMessage(`✅ Plik "${documentToShare.filename}" udostępniony`);
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+
     setShowShareModal(false);
     setDocumentToShare(null);
-    setSelectedFriends([]);
+    setSelectedUsers([]);
+    setTimeout(() => setMessage(''), 3000);
   };
 
-  const toggleFriendSelection = (friendId: number) => {
-    setSelectedFriends(prev => 
-      prev.includes(friendId) 
-        ? prev.filter(id => id !== friendId)
-        : [...prev, friendId]
+  const toggleUserSelection = (userLogin: string) => {
+    setSelectedUsers(prev => 
+      prev.includes(userLogin) 
+        ? prev.filter(login => login !== userLogin)
+        : [...prev, userLogin]
     );
   };
 
@@ -331,7 +334,35 @@ export const FilePage = () => {
               </div>
             </div>
           </div>
-          <p className="text-slate-700 dark:text-slate-300">Brak materiałów znajomych</p>
+          
+          {sharedDocuments.length === 0 ? (
+            <p className="text-slate-700 dark:text-slate-300">Brak materiałów znajomych</p>
+          ) : (
+            <div className="space-y-2">
+              {sharedDocuments.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between py-2 px-3 rounded transition border box"
+                >
+                  <button
+                    onClick={() => handleDownloadDocument(doc.id)}
+                    className="flex-1 flex items-center gap-3 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
+                  >
+                    <span className="text-2xl">{getFileIcon(doc.filename).icon}</span>
+                    <div className="flex flex-col">
+                      <span>{doc.filename}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Udostępnił: {doc.username}
+                      </span>
+                      <span className={`text-xs ${getFileIcon(doc.filename).color}`}>
+                        {getFileExtension(doc.filename)}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -482,7 +513,7 @@ export const FilePage = () => {
               onClick={() => {
                 setShowShareModal(false);
                 setDocumentToShare(null);
-                setSelectedFriends([]);
+                setSelectedUsers([]);
               }}
               className="absolute top-4 right-7 log-in-e text-slate-900"
             >
@@ -498,22 +529,26 @@ export const FilePage = () => {
             
             <div className="space-y-3 max-h-64 overflow-y-auto mb-6">
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
-                Wybierz znajomych:
+                Wybierz użytkowników:
               </p>
-              {friends.map((friend) => (
-                <label
-                  key={friend.id}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedFriends.includes(friend.id)}
-                    onChange={() => toggleFriendSelection(friend.id)}
-                    className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                  />
-                  <span className="text-slate-900 dark:text-slate-100">{friend.name}</span>
-                </label>
-              ))}
+              {users.length === 0 ? (
+                <p className="text-sm text-slate-600 dark:text-slate-400">Brak użytkowników</p>
+              ) : (
+                users.map((user) => (
+                  <label
+                    key={user.login}
+                    className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.includes(user.login)}
+                      onChange={() => toggleUserSelection(user.login)}
+                      className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                    />
+                    <span className="text-slate-900 dark:text-slate-100">{user.login}</span>
+                  </label>
+                ))
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -521,7 +556,7 @@ export const FilePage = () => {
                 onClick={() => {
                   setShowShareModal(false);
                   setDocumentToShare(null);
-                  setSelectedFriends([]);
+                  setSelectedUsers([]);
                 }}
                 className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
               >
@@ -531,7 +566,7 @@ export const FilePage = () => {
                 onClick={handleConfirmShare}
                 className="flex-1 log-in py-2 font-medium"
               >
-                Udostępnij ({selectedFriends.length})
+                Udostępnij ({selectedUsers.length})
               </button>
             </div>
           </div>

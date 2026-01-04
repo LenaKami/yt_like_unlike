@@ -16,6 +16,12 @@ export interface FolderFromBackend {
   created_at: string;
 }
 
+export interface User {
+  login: string;
+  email: string;
+  profile_picture: string;
+}
+
 export const fileApi = {
   // Pobierz pliki użytkownika
   getUserFiles: async (username: string): Promise<FileFromBackend[]> => {
@@ -149,6 +155,63 @@ export const fileApi = {
     } catch (error) {
       console.error("Error deleting file:", error);
       return { success: false, message: "Błąd podczas usuwania pliku" };
+    }
+  },
+
+  // Pobierz wszystkich użytkowników (do udostępniania)
+  getAllUsers: async (): Promise<User[]> => {
+    try {
+      const response = await fetch("http://localhost:5000/user/all");
+      const data = await response.json();
+      if (data.status === 200 && Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return [];
+    }
+  },
+
+  // Udostępnij plik wybranym użytkownikom
+  shareFile: async (
+    fileId: number,
+    usernames: string[]
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/share`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ file_id: fileId, usernames }),
+      });
+
+      const data = await response.json();
+      
+      if (data.status === 200) {
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, message: data.message || "Błąd podczas udostępniania pliku" };
+      }
+    } catch (error) {
+      console.error("Error sharing file:", error);
+      return { success: false, message: "Błąd podczas udostępniania pliku" };
+    }
+  },
+
+  // Pobierz pliki udostępnione użytkownikowi
+  getSharedFiles: async (username: string): Promise<FileFromBackend[]> => {
+    try {
+      const response = await fetch(`${API_URL}/shared-with/${username}`);
+      const data = await response.json();
+      if (data.status === 200 && Array.isArray(data.data)) {
+        return data.data;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching shared files:", error);
+      return [];
     }
   },
 };

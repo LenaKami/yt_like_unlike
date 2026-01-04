@@ -13,6 +13,8 @@ router.get(
   "/recent-shared-by-friends/:username",
   FriendsController.getRecentSharedByFriends
 );
+router.get("/shared-with/:username", FriendsController.getFilesSharedWithUser);
+router.post("/share", FriendsController.shareFileWithUsers);
 router.delete("/delete/:id/:username", FilesController.deleteFile);
 
 module.exports = router;

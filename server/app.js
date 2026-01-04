@@ -197,6 +197,20 @@ app.get("/user/search", async function (req, res) {
   }
 });
 
+// Pobieranie wszystkich użytkowników (do udostępniania plików)
+app.get("/user/all", async function (req, res) {
+  try {
+    const [rows] = await db
+      .promise()
+      .query("SELECT login, email, profile_picture FROM Users");
+
+    res.status(200).json({ status: 200, data: rows });
+  } catch (err) {
+    console.error("❌ Błąd przy pobieraniu użytkowników:", err);
+    res.status(500).json({ status: 500, message: "Błąd serwera" });
+  }
+});
+
 app.listen(5000, () => {
   console.log(`✅ Serwer działa na http://localhost:5000`);
 });
