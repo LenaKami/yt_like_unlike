@@ -6,30 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
-
-type PlayerYT = {
-  _id: number;
-  linkyt: string;
-  category: string;
-  like: [string];
-  unlike: [string];
-  countlike: number;
-  countunlike: number;
-};
-
-type Document = {
-  id: number;
-  name: string;
-  uploadDate: string;
-  folderId: number;
-  fileType: 'pdf' | 'docx' | 'xlsx';
-};
-
-type Folder = {
-  id: number;
-  name: string;
-  isExpanded: boolean;
-};
+import { fileApi, type FileFromBackend, type FolderFromBackend } from '../api/fileApi';
 
 type Friend = {
   id: number;
@@ -41,7 +18,6 @@ export const FilePage = () => {
     "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500";
   const classlabel = "block mb-2 text-sm font-medium text-white";
   
-  const [players, setPlayers] = useState<PlayerYT[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   
@@ -49,7 +25,7 @@ export const FilePage = () => {
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   
-  const [documentToShare, setDocumentToShare] = useState<Document | null>(null);
+  const [documentToShare, setDocumentToShare] = useState<FileFromBackend | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   
   const navigate = useNavigate();
@@ -68,17 +44,8 @@ export const FilePage = () => {
     resolver: zodResolver(folderValidationSchema),
   });
 
-  const [folders, setFolders] = useState<Folder[]>([
-    { id: 1, name: 'Matematyka', isExpanded: true },
-    { id: 2, name: 'Fizyka', isExpanded: false },
-  ]);
-
-  const [documents, setDocuments] = useState<Document[]>([
-    { id: 1, name: 'Całki', uploadDate: '2025-12-01', folderId: 1, fileType: 'pdf' },
-    { id: 2, name: 'Funkcja kwadratowa', uploadDate: '2025-12-05', folderId: 1, fileType: 'docx' },
-    { id: 3, name: 'Wielomiany', uploadDate: '2025-12-08', folderId: 1, fileType: 'xlsx' },
-    { id: 4, name: 'Funkcja liniowa', uploadDate: '2025-12-10', folderId: 1, fileType: 'pdf' },
-  ]);
+  const [folders, setFolders] = useState<FolderFromBackend[]>([]);
+  const [documents, setDocuments] = useState<FileFromBackend[]>([]);
 
   const [friends] = useState<Friend[]>([
     { id: 1, name: 'Anna Kowalska' },
@@ -88,17 +55,32 @@ export const FilePage = () => {
   ]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (username) {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [username]);
 
   const fetchData = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/file/myfiles');
-      const data = await res.json();
-      if (Array.isArray(data.data)) setPlayers(data.data);
+    if (!username) {
       setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const [foldersData, filesData] = await Promise.all([
+        fileApi.getUserFolders(username),
+        fileApi.getUserFiles(username)
+      ]);
+      
+      setFolders(foldersData);
+      setDocuments(filesData);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setMessage('❌ Błąd podczas ładowania danych. Sprawdź czy backend działa.');
+    } finally {
       setLoading(false);
     }
   };
@@ -121,7 +103,7 @@ export const FilePage = () => {
       .filter(f => selectedFriends.includes(f.id))
       .map(f => f.name)
       .join(', ');
-    setMessage(`✅ Udostępniono "${documentToShare?.name}" dla: ${friendNames}`);
+    setMessage(`✅ Udostępniono "${documentToShare?.filename}" dla: ${friendNames}`);
     setShowShareModal(false);
     setDocumentToShare(null);
     setSelectedFriends([]);
@@ -135,74 +117,103 @@ export const FilePage = () => {
     );
   };
 
-  const handleDownloadDocument = (docId: number) => {
-    console.log('Downloading document:', docId);
+  const handleDownloadDocument = async (docId: number) => {
+    const doc = documents.find(d => d.id === docId);
+    if (!doc) return;
+    
     setMessage('📥 Pobieranie dokumentu...');
+    const success = await fileApi.downloadFile(doc.id, doc.filename);
+    
+    if (success) {
+      setMessage('✅ Plik pobrany pomyślnie');
+    } else {
+      setMessage('❌ Błąd podczas pobierania pliku');
+    }
+    
+    setTimeout(() => setMessage(''), 3000);
   };
 
-  const handleAddDocument: SubmitHandler<FileFormData> = (data) => {
+  const handleAddDocument: SubmitHandler<FileFormData> = async (data) => {
+    if (!username) {
+      setMessage('❌ Błąd: Brak zalogowanego użytkownika');
+      return;
+    }
+
     const fileObj = data.file && data.file.length > 0 ? data.file[0] : null;
 
     if (!fileObj) {
-        setMessage('❌ Błąd: Nie wybrano pliku');
-        return;
+      setMessage('❌ Błąd: Nie wybrano pliku');
+      return;
     }
 
-    const fileName = fileObj.name.toLowerCase();
-    let fileType: 'pdf' | 'docx' | 'xlsx' = 'pdf';
-    if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      fileType = 'docx';
-    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      fileType = 'xlsx';
-    } else if (fileName.endsWith('.pdf')) {
-      fileType = 'pdf';
+    // Znajdź nazwę folderu na podstawie ID
+    const folder = folders.find(f => f.id === Number(data.folderId));
+    const category = folder ? folder.foldername : 'Inne';
+
+    const result = await fileApi.uploadFile(
+      username,
+      data.filename,
+      category,
+      fileObj
+    );
+
+    if (result.success) {
+      setMessage('✅ Dokument dodany pomyślnie');
+      reset();
+      setShowAddModal(false);
+      fetchData(); // Odśwież listę
+    } else {
+      setMessage(`❌ ${result.message}`);
     }
 
-    const newDoc: Document = {
-      id: documents.length + 1,
-      name: data.filename,
-      uploadDate: new Date().toISOString().split('T')[0],
-      folderId: Number(data.folderId),
-      fileType: fileType,
-    };
-
-    setDocuments([...documents, newDoc]);
-    setMessage('✅ Dokument dodany');
-    reset();
-    setShowAddModal(false);
+    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleAddFolder: SubmitHandler<FolderFormData> = async (data) => {
-  const newFolder: Folder = {
-    id: folders.length + 1,
-    name: data.foldername,
-    isExpanded: true,
+    if (!username) {
+      setMessage('❌ Błąd: Brak zalogowanego użytkownika');
+      return;
+    }
+
+    const result = await fileApi.addFolder(username, data.foldername);
+
+    if (result.success) {
+      setMessage('✅ Folder dodany pomyślnie!');
+      setShowAddFolderModal(false);
+      resetFolder();
+      fetchData(); // Odśwież listę
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+
+    setTimeout(() => setMessage(''), 3000);
   };
-
-  setFolders([...folders, newFolder]);
-  setShowAddFolderModal(false);
-  resetFolder();
-  setMessage('✅ Folder dodany pomyślnie!');
-};
-
 
   const toggleFolder = (folderId: number) => {
-    setFolders(folders.map(f => 
-      f.id === folderId ? { ...f, isExpanded: !f.isExpanded } : f
-    ));
+    setFolders(folders.map(f => {
+      if (f.id === folderId) {
+        return { ...f, isExpanded: !(f as any).isExpanded };
+      }
+      return f;
+    }));
   };
 
-  const getFileIcon = (fileType: 'pdf' | 'docx' | 'xlsx') => {
-    switch(fileType) {
-      case 'pdf':
-        return { icon: '📕', color: 'text-red-600' };
-      case 'docx':
-        return { icon: '📘', color: 'text-blue-600' };
-      case 'xlsx':
-        return { icon: '📗', color: 'text-green-600' };
-      default:
-        return { icon: '📄', color: 'text-gray-600' };
+  const getFileIcon = (filename: string) => {
+    const lowerName = filename.toLowerCase();
+    if (lowerName.endsWith('.pdf')) {
+      return { icon: '📕', color: 'text-red-600' };
+    } else if (lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) {
+      return { icon: '📘', color: 'text-blue-600' };
+    } else if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+      return { icon: '📗', color: 'text-green-600' };
+    } else {
+      return { icon: '📄', color: 'text-gray-600' };
     }
+  };
+
+  const getFileExtension = (filename: string): string => {
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : 'FILE';
   };
 
   if (loading) return <div className="text-center text-white mt-10">Loading...</div>;
@@ -241,19 +252,19 @@ export const FilePage = () => {
                     onClick={() => toggleFolder(folder.id)}
                     className="flex items-center gap-3 w-full mb-3"
                   >
-                    {folder.isExpanded ? (
+                    {(folder as any).isExpanded ? (
                       <ChevronDownIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                     ) : (
                       <ChevronRightIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                     )}
                     <FolderIcon className="w-6 h-6 text-yellow-500" />
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{folder.name}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{folder.foldername}</h3>
                   </button>
                   
-                  {folder.isExpanded && (
+                  {(folder as any).isExpanded && (
                     <div className="space-y-2 pl-2">
                       {documents
-                        .filter((doc) => doc.folderId === folder.id)
+                        .filter((doc) => doc.category === folder.foldername)
                         .map((doc) => (
                           <div
                             key={doc.id}
@@ -263,11 +274,11 @@ export const FilePage = () => {
                               onClick={() => handleDownloadDocument(doc.id)}
                               className="flex-1 flex items-center gap-3 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
                             >
-                              <span className="text-2xl">{getFileIcon(doc.fileType).icon}</span>
+                              <span className="text-2xl">{getFileIcon(doc.filename).icon}</span>
                               <div className="flex flex-col">
-                                <span>{doc.name}</span>
-                                <span className={`text-xs ${getFileIcon(doc.fileType).color}`}>
-                                  {doc.fileType.toUpperCase()}
+                                <span>{doc.filename}</span>
+                                <span className={`text-xs ${getFileIcon(doc.filename).color}`}>
+                                  {getFileExtension(doc.filename)}
                                 </span>
                               </div>
                             </button>
@@ -351,11 +362,15 @@ export const FilePage = () => {
                   {...register('folderId')}
                   className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
                 >
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </option>
-                  ))}
+                  {folders.length === 0 ? (
+                    <option value="">Brak folderów - utwórz folder</option>
+                  ) : (
+                    folders.map((folder) => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.foldername}
+                      </option>
+                    ))
+                  )}
                 </select>
                 {errors.folderId && (
                   <p className="text-sm text-red-500 mt-1">{errors.folderId.message}</p>
@@ -478,7 +493,7 @@ export const FilePage = () => {
               Udostępnij materiał
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-              {documentToShare.name}
+              {documentToShare?.filename}
             </p>
             
             <div className="space-y-3 max-h-64 overflow-y-auto mb-6">

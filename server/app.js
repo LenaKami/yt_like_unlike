@@ -138,7 +138,7 @@ app.post("/user/login", async function (req, res) {
         role: user.role,
         image: user.profile_picture,
       },
-      process.env.TOKEN_SECRET,
+      process.env.TOKEN_SECRET || 'dev-secret-key-for-local-development',
       { expiresIn: "1h" }
     );
 

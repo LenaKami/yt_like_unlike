@@ -31,11 +31,27 @@ CREATE TABLE IF NOT EXISTS Files (
 );
 `;
 
+const createFoldersTableQuery = `
+CREATE TABLE IF NOT EXISTS Folders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL,
+  foldername VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
 db.promise()
   .query(createFilesTableQuery)
   .then(() => console.log("✅ Tabela Files gotowa!"))
   .catch((err) =>
     console.error("❌ Błąd przy tworzeniu tabeli Files:", err.message)
+  );
+
+db.promise()
+  .query(createFoldersTableQuery)
+  .then(() => console.log("✅ Tabela Folders gotowa!"))
+  .catch((err) =>
+    console.error("❌ Błąd przy tworzeniu tabeli Folders:", err.message)
   );
 
 // 🔹 Dodawanie pliku
@@ -84,6 +100,47 @@ module.exports.getUserFiles = async (req, res) => {
   }
 };
 
+// 🔹 Dodawanie folderu
+module.exports.addFolder = async (req, res) => {
+  const { username, foldername } = req.body;
+
+  if (!username || !foldername) {
+    return res.status(400).json({
+      status: 400,
+      message: "Brak wymaganych danych (username, foldername)",
+    });
+  }
+
+  try {
+    const insertQuery = `
+      INSERT INTO Folders (username, foldername)
+      VALUES (?, ?)
+    `;
+    await db.promise().query(insertQuery, [username, foldername]);
+
+    res.status(200).json({
+      status: 200,
+      message: "📁 Folder dodany pomyślnie",
+    });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};
+
+// 🔹 Pobieranie folderów użytkownika
+module.exports.getUserFolders = async (req, res) => {
+  const { username } = req.params;
+
+  try {
+    const [rows] = await db
+      .promise()
+      .query("SELECT * FROM Folders WHERE username = ? ORDER BY created_at DESC", [username]);
+    res.status(200).json({ status: 200, data: rows });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};
+
 // 🔹 Pobieranie plików udostępnionych wszystkim (niezależnie od znajomych)
 module.exports.getSharedFiles = async (req, res) => {
   try {
@@ -93,6 +150,38 @@ module.exports.getSharedFiles = async (req, res) => {
          JOIN FileShares fs ON f.id = fs.file_id`
     );
     res.status(200).json({ status: 200, data: rows });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};
+
+// 🔹 Pobieranie pliku (download)
+module.exports.downloadFile = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [rows] = await db
+      .promise()
+      .query("SELECT * FROM Files WHERE id = ?", [id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: "Plik nie istnieje",
+      });
+    }
+
+    const file = rows[0];
+    const filePath = path.join(__dirname, "../uploads", file.filepath);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        status: 404,
+        message: "Plik nie został znaleziony na serwerze",
+      });
+    }
+
+    res.download(filePath, file.filename);
   } catch (err) {
     res.status(400).json({ status: 400, message: err.message });
   }
