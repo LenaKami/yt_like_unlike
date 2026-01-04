@@ -4,6 +4,7 @@ import {useForm, type SubmitHandler} from "react-hook-form"
 import {type LoginFormData, validationSchema} from "./types_login"
 import {zodResolver} from '@hookform/resolvers/zod'
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WaNavLink } from "../onkrzyczy";
 import { routes } from "../routes";
 import { useAuthContext } from "../Auth/AuthContext";
@@ -16,6 +17,7 @@ export const LoginForm = () => {
    const classlabel = "block mb-2 text-sm font-medium text-white"
     const [message, setMessage] = useState('');
     const { logIn } = useAuthContext();
+    const navigate = useNavigate();
     //const { isLoggedIn,logIn } = useAuthContext();
 const {register, handleSubmit, formState:{errors }} = useForm<LoginFormData>({
     resolver: zodResolver(validationSchema)
@@ -37,6 +39,10 @@ const handleLoginForm: SubmitHandler<LoginFormData> = async (data) => {
         const token = dataa.token;//dataa.accessToken.AccessToken;
         localStorage.setItem('jwtToken', token);
         logIn()
+        // Przekierowanie na stronę główną po pomyślnym logowaniu
+        setTimeout(() => {
+          navigate(routes.HOME.path);
+        }, 500);
         setMessage(`Success: ${dataa.message}`);
       } else {
         setMessage(`Error: ${dataa.message}`);
