@@ -69,3 +69,5 @@ server/dist/
 # Optional - OS-specific files
 ehthumbs.db
 Icon?
+.github/copilot-instructions.md
+.gitignore

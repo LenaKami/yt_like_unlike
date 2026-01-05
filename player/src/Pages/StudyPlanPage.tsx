@@ -5,6 +5,9 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type StudyFormData, validationSchema } from "../types_plan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { XMarkIcon,} from '@heroicons/react/24/solid';
+import { useAuthContext } from '../Auth/AuthContext';
+
+const STUDY_API = 'http://localhost:5000/study';
 
 // ===== Types =====
 type Task = {
@@ -60,37 +63,64 @@ export const PlanNaukiPage = () => {
     d.setDate(1);
     return d;
   });
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<StudyFormData>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<StudyFormData>({
     resolver: zodResolver(validationSchema),
   });
   const [showCalendar, setShowCalendar] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  // ===== Load tasks or add sample =====
-// === Load sample tasks ===
-useEffect(() => {
-  const today = new Date();
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-const sampleTasks: Task[] = [
-  { id: '1', name: 'Matematyka – Algebra', date: fmt(today), start: '10:00', end: '11:00', playlist: 'Lekcje 1', active: true },
-  { id: '2', name: 'Biologia – Genetyka', date: fmt(new Date(today.getTime() + 86400000)), start: '12:00', end: '13:00', playlist: 'Lekcje 2', active: true },
-  { id: '3', name: 'Fizyka – Ruch jednostajny', date: fmt(new Date(today.getTime() + 2*86400000)), start: '09:00', end: '10:30', playlist: 'Lekcje 3', active: true },
-  { id: '4', name: 'Chemia – Reakcje chemiczne', date: fmt(new Date(today.getTime() + 7*86400000)), start: '14:00', end: '15:00', playlist: 'Lekcje 1', active: true },
-  { id: '5', name: 'Historia – II wojna światowa', date: fmt(new Date(today.getTime() + 10*86400000)), start: '16:00', end: '17:30', playlist: 'Lekcje 2', active: true },
+  const { isLoggedIn, username } = useAuthContext();
+  const [activePlanId, setActivePlanId] = useState<number | null>(null);
+  const [pendingDeletions, setPendingDeletions] = useState<Record<string, number>>({});
 
-  // nadchodzące przykłady
-  { id: 'u1', name: 'Projekt z WOS – Samorząd uczniowski', date: fmt(new Date(today.getTime() + 3*86400000)), start: '09:00', end: '10:00', playlist: 'Lekcje 1', active: true },
-  { id: 'u2', name: 'Język polski – Analiza wiersza', date: fmt(new Date(today.getTime() + 4*86400000)), start: '11:00', end: '12:00', playlist: 'Lekcje 2', active: true },
-  { id: 'u3', name: 'Geografia – Klimat świata', date: fmt(new Date(today.getTime() + 5*86400000)), start: '14:00', end: '15:00', playlist: 'Lekcje 3', active: true },
-  { id: 'u4', name: 'Informatyka – Prezentacja PowerPoint', date: fmt(new Date(today.getTime() + 6*86400000)), start: '16:00', end: '17:00', playlist: 'Lekcje 1', active: true },
-  { id: 'u5', name: 'Sztuka – Rysunek perspektywiczny', date: fmt(new Date(today.getTime() + 7*86400000)), start: '18:00', end: '19:00', playlist: 'Lekcje 2', active: true },
-];
+  // Load plans and lessons from backend for logged in user
+  useEffect(() => {
+    if (!isLoggedIn || !username) return;
+    (async () => {
+      try {
+        // Get plans for user
+        const res = await fetch(`${STUDY_API}/plan/user/${username}`);
+        const data = await res.json();
+        if (data.status === 200 && Array.isArray(data.data) && data.data.length > 0) {
+          const plan = data.data[0];
+          setActivePlanId(plan.id);
+          // fetch lessons
+          const lres = await fetch(`${STUDY_API}/plan/${plan.id}/lessons`);
+          const ldata = await lres.json();
+          if (ldata.status === 200 && Array.isArray(ldata.data)) {
+            const mapped = ldata.data.map((row: any) => {
+              const date = row.scheduled_at ? row.scheduled_at.slice(0,10) : new Date(row.created_at).toISOString().slice(0,10);
+              const start = row.scheduled_at ? row.scheduled_at.slice(11,16) : '09:00';
+              const end = row.duration_minutes ? (()=>{
+                const [h,m]=start.split(':').map(Number);
+                const dt=new Date(); dt.setHours(h); dt.setMinutes(m+row.duration_minutes);
+                return dt.toTimeString().slice(0,5);
+              })() : '10:00';
+              return { id: String(row.id), name: row.title, date, start, end, playlist: '', active: !row.completed } as Task;
+            });
+            setTasks(mapped);
+          }
+        } else {
+          // create a default plan
+          await fetch(`${STUDY_API}/plan/add`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_login: username, title: 'Mój plan' }) });
+          // recall effect to load
+          const retry = await fetch(`${STUDY_API}/plan/user/${username}`);
+          const retryData = await retry.json();
+          if (retryData.status === 200 && Array.isArray(retryData.data) && retryData.data.length>0) {
+            setActivePlanId(retryData.data[0].id);
+          }
+        }
+      } catch (e) {
+        console.error('Błąd ładowania planu:', e);
+      }
+    })();
+  }, [isLoggedIn, username]);
 
-
-  setTasks(sampleTasks);
-}, []);
-
+  // keep controlled playlist in sync with react-hook-form value for validation
+  React.useEffect(() => {
+    setValue('playlist', playlist);
+  }, [playlist, setValue]);
 // === tasksByDate ===
 const tasksByDate = useMemo(() => {
   const map = new Map<string, Task[]>();
@@ -109,26 +139,54 @@ const tasksByDate = useMemo(() => {
   }, [tasks]);
 
 const onSubmit: SubmitHandler<StudyFormData> = (data) => {
-const newTask: Task = {
-id: String(Date.now()),
-name: data.taskname,
-date: data.dataaa,
-start: data.startg,
-end: data.endg,
-playlist,
-active: true,
-};
+  console.log('onSubmit called', data);
+  // create task object locally; id will be replaced with backend id when available
+  const tempId = String(Date.now());
+  const newTask: Task = {
+    id: tempId,
+    name: data.taskname,
+    date: data.dataaa,
+    start: data.startg,
+    end: data.endg,
+    playlist,
+    active: true,
+  };
 
+  // Optimistically add to UI
+  setTasks((prev) =>
+    [...prev, newTask].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
+  );
 
-setTasks((prev) =>
-[...prev, newTask].sort((a, b) =>
-(a.date + a.start).localeCompare(b.date + b.start)
-)
-);
+  // persist to backend if we have an active plan and logged in
+  if (activePlanId && username) {
+    (async () => {
+      try {
+        const res = await fetch(`${STUDY_API}/plan/lesson/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            plan_id: activePlanId,
+            title: data.taskname,
+            description: '',
+            scheduled_at: data.dataaa + ' ' + data.startg + ':00',
+            duration_minutes: Math.max(1, (parseInt(data.endg.slice(0, 2)) * 60 + parseInt(data.endg.slice(3))) - (parseInt(data.startg.slice(0, 2)) * 60 + parseInt(data.startg.slice(3)))),
+          }),
+        });
+        const j = await res.json();
+        if (j && j.status === 200 && j.data && j.data.id) {
+          // replace temp id with real id from backend
+          setTasks((prev) => prev.map((t) => (t.id === tempId ? { ...t, id: String(j.data.id) } : t)));
+        } else {
+          console.warn('Failed to get id from add lesson response', j);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }
 
-
-reset();
-setPlaylist('Playlist 1');
+  reset();
+  setPlaylist('Playlist 1');
 };
 
 
@@ -165,6 +223,15 @@ setPlaylist('Playlist 1');
           : t
       ).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
     );
+    // update backend
+    (async ()=>{
+      try {
+        await fetch(`${STUDY_API}/plan/lesson/update/${editingTask.id}`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ title: name, scheduled_at: date + ' ' + start + ':00', duration_minutes: Math.max(1, (parseInt(end.slice(0,2))*60+parseInt(end.slice(3)))-(parseInt(start.slice(0,2))*60+parseInt(start.slice(3)))) })
+        });
+      } catch(e){ console.error(e); }
+    })();
     setShowEditModal(false);
     setEditingTask(null);
     clearForm();
@@ -172,10 +239,63 @@ setPlaylist('Playlist 1');
 
   const deleteTask = (id: string) => {
     setTasks((s)=> s.filter(t=> t.id!==id));
+    (async ()=>{
+      try { await fetch(`${STUDY_API}/plan/lesson/delete/${id}`); } catch(e){console.error(e)}
+    })();
     setShowEditModal(false);
     setEditingTask(null);
   };
-  const toggleActive = (id: string) => setTasks((s)=> s.map(t=> t.id===id ? {...t, active:!t.active} : t));
+  const toggleActive = (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const isNowActive = !task.active;
+    if (!isNowActive) {
+      // User marked as completed -> schedule deletion after delay
+      setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: false } : t)));
+      // schedule delete in 5s
+      const timeoutId = window.setTimeout(async () => {
+        try {
+          if (!isNaN(Number(id))) {
+            await fetch(`${STUDY_API}/plan/lesson/delete/${id}`);
+          }
+        } catch (e) {
+          console.error('Error deleting lesson', e);
+        }
+        // remove pending marker
+        setPendingDeletions((p) => {
+          const copy = { ...p };
+          delete copy[id];
+          return copy;
+        });
+        // remove from UI
+        setTasks((s) => s.filter((t) => t.id !== id));
+      }, 5000);
+      setPendingDeletions((p) => ({ ...p, [id]: timeoutId }));
+      return;
+    }
+    // User re-activated (unlikely via checkbox) -> cancel pending delete
+    if (pendingDeletions[id]) {
+      clearTimeout(pendingDeletions[id]);
+      setPendingDeletions((p) => {
+        const copy = { ...p };
+        delete copy[id];
+        return copy;
+      });
+    }
+    setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: true } : t)));
+  };
+
+  const undoDelete = (id: string) => {
+    if (pendingDeletions[id]) {
+      clearTimeout(pendingDeletions[id]);
+      setPendingDeletions((p) => {
+        const copy = { ...p };
+        delete copy[id];
+        return copy;
+      });
+      setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: true } : t)));
+    }
+  };
 
   const now = new Date();
   const weekStart = startOfWeek(now);
@@ -331,8 +451,13 @@ Dodaj
           <div className="text-xs">
             {t.start}-{t.end} • {t.playlist}
           </div>
-          <button onClick={()=>editTask(t.id)} className="log-in absolute top-0 right-0 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">Edytuj</button>
-          
+          <div className="absolute top-0 right-0 flex items-center gap-2">
+            {pendingDeletions[t.id] ? (
+              <button onClick={()=>undoDelete(t.id)} className="log-in-e px-2 py-1 text-xs">Cofnij</button>
+            ) : (
+              <button onClick={()=>editTask(t.id)} className="log-in px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">Edytuj</button>
+            )}
+          </div>
         </div>
             
       </li>
@@ -380,8 +505,13 @@ Dodaj
           <div className="text-xs">
             {t.start}-{t.end} • {t.playlist}
           </div>
-          <button onClick={()=>editTask(t.id)} className="log-in absolute top-0 right-0 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">Edytuj</button>
-          
+          <div className="absolute top-0 right-0 flex items-center gap-2">
+            {pendingDeletions[t.id] ? (
+              <button onClick={()=>undoDelete(t.id)} className="log-in-e px-2 py-1 text-xs">Cofnij</button>
+            ) : (
+              <button onClick={()=>editTask(t.id)} className="log-in px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity">Edytuj</button>
+            )}
+          </div>
         </div>
       </li>
     ))}

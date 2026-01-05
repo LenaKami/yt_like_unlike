@@ -11,6 +11,7 @@ var playerRouter = require("./routes/PlayerRoute.js");
 var fileRouter = require("./routes/FileRouter.js");
 var friendRouter = require("./routes/FriendRouter.js");
 var friendRequestsRouter = require("./routes/FriendRequestsRouter.js");
+var studyRouter = require('./routes/StudyPlanRoute');
 const multer = require("multer");
 const fs = require("fs");
 
@@ -61,6 +62,7 @@ app.use("/player", playerRouter);
 app.use("/file", fileRouter);
 app.use("/friend", friendRouter);
 app.use("/friend/requests", friendRequestsRouter);
+app.use('/study', studyRouter);
 
 // ============================
 // 📌 Rejestracja użytkownika
