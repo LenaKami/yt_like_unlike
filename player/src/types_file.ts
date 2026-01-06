@@ -1,10 +1,7 @@
 import { z } from "zod";
 
 export const documentValidationSchema = z.object({
-  filename: z
-    .string()
-    .min(1, "Wprowadź nazwę pliku")
-    .min(3, "Musi być co najmniej 3 znaki"),
+  filename: z.string().optional(),
   folderId: z.string().min(1, "Wybierz folder"),
   file: z
     .instanceof(FileList)

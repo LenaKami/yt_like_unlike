@@ -6,7 +6,7 @@ import { UserMenu } from "./userdb/UserMenu";
 import { useAuthContext } from "./Auth/AuthContext";
 
 export const Menu = () => {
-  const { isLoggedIn } = useAuthContext();
+  const { isLoggedIn, username } = useAuthContext();
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +48,7 @@ export const Menu = () => {
     className="hidden"
   />
 
-  <div className="font-semibold text-white">Antek Wróbel</div>
+  {username && <div className="font-semibold text-white">{username}</div>}
 </div>
 
 

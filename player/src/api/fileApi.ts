@@ -22,6 +22,12 @@ export interface User {
   profile_picture: string;
 }
 
+export interface Friend {
+  login: string;
+  email?: string;
+  profile_picture?: string;
+}
+
 export const fileApi = {
   // Pobierz pliki użytkownika
   getUserFiles: async (username: string): Promise<FileFromBackend[]> => {
@@ -211,6 +217,37 @@ export const fileApi = {
       return [];
     } catch (error) {
       console.error("Error fetching shared files:", error);
+      return [];
+    }
+  },
+
+  // Pobierz znajomych użytkownika
+  getFriends: async (username: string): Promise<Friend[]> => {
+    try {
+      const response = await fetch(`http://localhost:5000/friend/${username}`);
+      const data = await response.json();
+      if (data.status === 200 && Array.isArray(data.data)) {
+        // Backend zwraca tablicę stringów (nazw użytkowników), konwertujemy na obiekty Friend
+        return data.data.map((friendName: string) => ({ login: friendName }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+      return [];
+    }
+  },
+
+  // Pobierz listę użytkowników którym plik został już udostępniony
+  getFileShares: async (fileId: number): Promise<string[]> => {
+    try {
+      const response = await fetch(`${API_URL}/shares/${fileId}`);
+      const data = await response.json();
+      if (data.status === 200 && Array.isArray(data.data)) {
+        return data.data.map((item: any) => item.shared_with);
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching file shares:", error);
       return [];
     }
   },

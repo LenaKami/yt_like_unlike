@@ -9,6 +9,7 @@ router.get("/user/:username", FilesController.getUserFiles);
 router.get("/folders/:username", FilesController.getUserFolders);
 router.get("/download/:id", FilesController.downloadFile);
 router.get("/shared", FilesController.getSharedFiles);
+router.get("/shares/:id", FilesController.getFileShares);
 router.get(
   "/recent-shared-by-friends/:username",
   FriendsController.getRecentSharedByFriends

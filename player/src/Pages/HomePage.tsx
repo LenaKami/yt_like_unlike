@@ -10,7 +10,6 @@ type SharedFile = {
   category: string;
   filepath: string;
   created_at: string;
-  shared_at?: string;
 };
 
 type Task = {
@@ -36,7 +35,26 @@ const STORAGE_KEY = 'studyPlanTasks';
 
 export const HomePage = () => {
   const [recentSharedFiles, setRecentSharedFiles] = useState<SharedFile[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: 't1',
+      name: 'Przerobić lekcję funkcja kwadratowa',
+      date: '2025-12-16',
+      start: '10:00',
+      end: '11:30',
+      playlist: 'Nauka',
+      active: true,
+    },
+    {
+      id: 't2',
+      name: 'Zadanie z algorytmów',
+      date: '2025-12-17',
+      start: '14:00',
+      end: '15:00',
+      playlist: 'Nauka',
+      active: true,
+    },
+  ]);
 
 
   const [friends, setFriends] = useState<{
@@ -51,25 +69,18 @@ export const HomePage = () => {
 
   useEffect(() => {
     const fetchRecentSharedFiles = async () => {
-      if (!auth.username) {
-        console.log('[HomePage] No username, skipping fetch');
-        return;
-      }
+      if (!auth.username) return;
       try {
         const token = localStorage.getItem('jwtToken');
         const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-        console.log('[HomePage] Fetching recent files for:', auth.username);
         const res = await fetch(`${API_BASE}/file/recent-shared-by-friends/${auth.username}`, { headers });
         const json = await res.json();
-        console.log('[HomePage] Fetch response:', json);
         if (json.status === 200 && Array.isArray(json.data)) {
-          console.log('[HomePage] Setting files:', json.data);
           setRecentSharedFiles(json.data);
         } else {
           setRecentSharedFiles([]);
         }
       } catch (err) {
-        console.error('[HomePage] Fetch error:', err);
         setRecentSharedFiles([]);
       }
     };
@@ -112,30 +123,15 @@ export const HomePage = () => {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
-  const formatRelativeDays = (iso: string | undefined | null) => {
-    if (!iso) return '';
-    const d = new Date(iso);
-    const now = new Date();
-    // normalize to local midnight
-    const startOfDay = (dt: Date) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
-    const days = Math.round((startOfDay(now).getTime() - startOfDay(d).getTime()) / (24 * 60 * 60 * 1000));
-    if (days === 0) return 'dziś';
-    if (days > 0) return `${days} dni temu`;
-    return `za ${Math.abs(days)} dni`;
-  };
-
   const loadTasks = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      console.log('[HomePage] loadTasks - raw data:', raw);
       if (raw) {
         const parsed: Task[] = JSON.parse(raw);
         const normalized = parsed.map((t) => ({ ...t, active: t.active ?? true }));
         normalized.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
-        console.log('[HomePage] loadTasks - parsed:', normalized);
         setTasks(normalized);
       } else {
-        console.log('[HomePage] loadTasks - no data in storage');
         setTasks([]);
       }
     } catch (e) {
@@ -157,44 +153,6 @@ export const HomePage = () => {
       console.error('Failed to save tasks to storage', e);
     }
   }, [tasks]);
-  useEffect(() => {
-    // Try to fetch study plan tasks from backend; if found, prefer them over localStorage
-    const fetchStudyTasks = async () => {
-      if (!auth.username) return;
-      try {
-        const res = await fetch(`${API_BASE}/study/plan/user/${auth.username}`);
-        const json = await res.json();
-        if (json.status === 200 && Array.isArray(json.data) && json.data.length > 0) {
-          const plan = json.data[0];
-          const res2 = await fetch(`${API_BASE}/study/plan/${plan.id}/lessons`);
-          const json2 = await res2.json();
-          if (json2.status === 200 && Array.isArray(json2.data) && json2.data.length > 0) {
-            const mapped: Task[] = json2.data.map((l: any) => {
-              const scheduled = l.scheduled_at ? new Date(l.scheduled_at) : null;
-              const date = scheduled ? scheduled.toISOString().slice(0,10) : (l.scheduled_at ? String(l.scheduled_at).slice(0,10) : '');
-              const start = scheduled ? scheduled.toTimeString().slice(0,5) : '';
-              const end = scheduled && l.duration_minutes ? new Date(scheduled.getTime() + (l.duration_minutes||0)*60000).toTimeString().slice(0,5) : '';
-              return {
-                id: String(l.id),
-                name: l.title,
-                date,
-                start,
-                end,
-                playlist: 'Plan',
-                active: l.completed === undefined ? true : !l.completed,
-              } as Task;
-            });
-            mapped.sort((a,b) => (a.date + a.start).localeCompare(b.date + b.start));
-            setTasks(mapped);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('[HomePage] fetchStudyTasks error', err);
-      }
-    };
-    fetchStudyTasks();
-  }, [auth.username]);
 
   const toggleActive = (id: string) => {
     setTasks((s) =>
@@ -202,11 +160,7 @@ export const HomePage = () => {
     );
   };
 
-  // Filter for incomplete tasks (active === true) and limit to 3
-  const incompleteTasks = tasks.filter((t) => t.active !== false).slice(0, 3);
-
-  // Use files returned from backend (backend already limits / sorts). Limit to 3 here as safety.
-  const recentFiles = recentSharedFiles.slice(0, 3);
+  const upcoming = tasks.slice(0, 5);
 
 
 
@@ -226,27 +180,28 @@ export const HomePage = () => {
             <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nowości</h2>
             <div className="space-y-3 text-slate-700 dark:text-slate-300">
               <p>Witaj! Sprawdź najnowsze materiały i aktualizacje.</p>
-              {recentFiles.length === 0 ? (
+              {recentSharedFiles.length === 0 ? (
+                console.log(recentSharedFiles.length),
                 <div className="text-slate-400">Brak nowych plików udostępnionych przez znajomych w ostatnich 7 dniach.</div>
               ) : (
-                    recentFiles.map((f) => (
-                      <div key={f.id} className="p-3 border rounded box">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{f.username}</span> udostępnił/a „{f.filename}” ({formatRelativeDays(f.shared_at || f.created_at)})
-                      </div>
-                    ))
-                  )}
+                recentSharedFiles.map((f) => (
+                  <div key={f.id} className="p-3 border rounded box">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{f.username}</span> udostępnił/a „{f.filename}” ({new Date(f.created_at).toLocaleDateString()})
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
           {/* Sekcja Nadchodzące zadania */}
           <section className="login-box p-4 rounded shadow">
-            <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Plan dnia</h2>
+            <h2 className="text-xl font-semibold mb-2 text-slate-900 dark:text-slate-100">Nadchodzące zadania</h2>
             <div className="space-y-3 text-slate-700 dark:text-slate-300">
-              {incompleteTasks.length === 0 ? (
+              {upcoming.length === 0 ? (
                 <p>Brak zaplanowanych zadań. Przejdź do Plan nauki, aby dodać nowe.</p>
               ) : (
                 <ul className="space-y-3">
-                  {incompleteTasks.map((t) => (
+                  {upcoming.map((t) => (
                     <li
                       key={t.id}
                       className={`p-3 border rounded flex items-start bg-slate-50 dark:bg-slate-700 ${
@@ -261,10 +216,10 @@ export const HomePage = () => {
                       />
                       <div className="flex-1 relative">
                         <div className={`font-medium ${t.active === false ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}> 
-                          {formatRelativeDays(t.date)} — {t.name}
+                          {t.date} — {t.name}
                         </div>
                         <div className="text-xs">
-                          {t.start}{t.end ? `-${t.end}` : ''} • {t.playlist}
+                          {t.start}-{t.end} • {t.playlist}
                         </div>
                       </div>
                     </li>

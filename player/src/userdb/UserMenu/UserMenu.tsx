@@ -16,18 +16,6 @@ export const UserMenu = () => {
         <>
             {isLoggedIn ? (
                 <div className="flex flex-col space-y-3 flex-grow items-center">
-                    <p className="">{username}</p>
-                    {/* Wyświetlanie obrazu użytkownika */}
-                    {image ? (
-                        <img 
-                        src={image} 
-                        alt="User profile" 
-                        className="w-10 h-10 rounded-full mr-3 object-cover" 
-                    />
-                    
-                    ) : (
-                        <p> </p>
-                    )}
                     <div className='login-box-size'><WaNavLink to={routes.REGISTRATIONFORM.path}>Wyloguj</WaNavLink></div>
                 </div>
             ) : (<>

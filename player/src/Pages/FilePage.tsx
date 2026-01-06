@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
-import { fileApi, type FileFromBackend, type FolderFromBackend, type User } from '../api/fileApi';
+import { fileApi, type FileFromBackend, type FolderFromBackend, type User, type Friend } from '../api/fileApi';
 
 export const FilePage = () => {
   const classinput =
@@ -42,7 +42,8 @@ export const FilePage = () => {
   const [folders, setFolders] = useState<FolderFromBackend[]>([]);
   const [documents, setDocuments] = useState<FileFromBackend[]>([]);
   const [sharedDocuments, setSharedDocuments] = useState<FileFromBackend[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [alreadySharedWith, setAlreadySharedWith] = useState<string[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   useEffect(() => {
@@ -61,18 +62,17 @@ export const FilePage = () => {
     
     setLoading(true);
     try {
-      const [foldersData, filesData, sharedFilesData, usersData] = await Promise.all([
+      const [foldersData, filesData, sharedFilesData, friendsData] = await Promise.all([
         fileApi.getUserFolders(username),
         fileApi.getUserFiles(username),
         fileApi.getSharedFiles(username),
-        fileApi.getAllUsers()
+        fileApi.getFriends(username)
       ]);
       
       setFolders(foldersData);
       setDocuments(filesData);
       setSharedDocuments(sharedFilesData);
-      // Filtruj użytkowników - usuń zalogowanego użytkownika z listy
-      setUsers(usersData.filter(u => u.login !== username));
+      setFriends(friendsData);
     } catch (error) {
       console.error('Error fetching data:', error);
       setMessage('❌ Błąd podczas ładowania danych. Sprawdź czy backend działa.');
@@ -81,11 +81,16 @@ export const FilePage = () => {
     }
   };
 
-  const handleShareDocument = (docId: number) => {
+  const handleShareDocument = async (docId: number) => {
     const doc = documents.find(d => d.id === docId);
     if (doc) {
       setDocumentToShare(doc);
       setSelectedUsers([]);
+      // Pobierz listę użytkowników którym już udostępniono
+      const shared = await fileApi.getFileShares(docId);
+      console.log('Already shared with:', shared);
+      console.log('Friends list:', friends);
+      setAlreadySharedWith(shared);
       setShowShareModal(true);
     }
   };
@@ -153,9 +158,10 @@ export const FilePage = () => {
     const folder = folders.find(f => f.id === Number(data.folderId));
     const category = folder ? folder.foldername : 'Inne';
 
+    // Użyj nazwy przesłanego pliku zamiast pola filename
     const result = await fileApi.uploadFile(
       username,
-      data.filename,
+      fileObj.name,
       category,
       fileObj
     );
@@ -219,6 +225,11 @@ export const FilePage = () => {
     return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : 'FILE';
   };
 
+  const truncateFilename = (filename: string, maxLength: number = 15): string => {
+    if (filename.length <= maxLength) return filename;
+    return filename.substring(0, maxLength) + '...';
+  };
+
   if (loading) return <div className="text-center text-white mt-10">Loading...</div>;
 
   return (
@@ -278,8 +289,8 @@ export const FilePage = () => {
                               className="flex-1 flex items-center gap-3 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
                             >
                               <span className="text-2xl">{getFileIcon(doc.filename).icon}</span>
-                              <div className="flex flex-col">
-                                <span>{doc.filename}</span>
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <span title={doc.filename}>{truncateFilename(doc.filename)}</span>
                                 <span className={`text-xs ${getFileIcon(doc.filename).color}`}>
                                   {getFileExtension(doc.filename)}
                                 </span>
@@ -349,8 +360,8 @@ export const FilePage = () => {
                     className="flex-1 flex items-center gap-3 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
                   >
                     <span className="text-2xl">{getFileIcon(doc.filename).icon}</span>
-                    <div className="flex flex-col">
-                      <span>{doc.filename}</span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span title={doc.filename}>{truncateFilename(doc.filename)}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         Udostępnił: {doc.username}
                       </span>
@@ -406,16 +417,6 @@ export const FilePage = () => {
                 {errors.folderId && (
                   <p className="text-sm text-red-500 mt-1">{errors.folderId.message}</p>
                 )}
-              </div>
-
-              <div>
-                <Input
-                  label="Nazwa pliku"
-                  {...register('filename')}
-                  inputClassName={classinput}
-                  labelClassName={classlabel}
-                  error={errors.filename}
-                />
               </div>
 
               <div>
@@ -529,25 +530,36 @@ export const FilePage = () => {
             
             <div className="space-y-3 max-h-64 overflow-y-auto mb-6">
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
-                Wybierz użytkowników:
+                Wybierz znajomych:
               </p>
-              {users.length === 0 ? (
-                <p className="text-sm text-slate-600 dark:text-slate-400">Brak użytkowników</p>
+              {friends.length === 0 ? (
+                <p className="text-sm text-slate-600 dark:text-slate-400">Brak znajomych. Dodaj znajomych w zakładce "Znajomi".</p>
               ) : (
-                users.map((user) => (
-                  <label
-                    key={user.login}
-                    className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.login)}
-                      onChange={() => toggleUserSelection(user.login)}
-                      className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-slate-900 dark:text-slate-100">{user.login}</span>
-                  </label>
-                ))
+                friends.map((friend) => {
+                  const isAlreadyShared = alreadySharedWith.includes(friend.login);
+                  return (
+                    <label
+                      key={friend.login}
+                      className={`flex items-center gap-3 p-3 transition ${
+                        isAlreadyShared 
+                          ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800' 
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(friend.login)}
+                        onChange={() => !isAlreadyShared && toggleUserSelection(friend.login)}
+                        disabled={isAlreadyShared}
+                        className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-slate-900 dark:text-slate-100">
+                        {friend.login}
+                        {isAlreadyShared && <span className="text-xs text-slate-500 ml-2">(już udostępniono)</span>}
+                      </span>
+                    </label>
+                  );
+                })
               )}
             </div>
 
