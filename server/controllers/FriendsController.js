@@ -333,30 +333,35 @@ module.exports.getFilesSharedWithUser = async (req, res) => {
 module.exports.getRecentSharedByFriends = async (req, res) => {
   const { username } = req.params;
   try {
-    // Pobierz znajomych użytkownika
-    const [friendsRows] = await db
+    // Debug: sprawdź co jest w FileShares dla tego użytkownika
+    const [allShares] = await db
       .promise()
-      .query("SELECT friends FROM Friends WHERE username = ?", [username]);
-    if (!friendsRows.length) {
-      return res.status(200).json({ status: 200, data: [] });
-    }
-    const friends = JSON.parse(friendsRows[0].friends || "[]");
-    if (!friends.length) {
-      return res.status(200).json({ status: 200, data: [] });
-    }
-    // Pobierz 3 najnowsze pliki udostępnione userowi przez znajomych
-    const placeholders = friends.map(() => "?").join(",");
-    const [files] = await db.promise().query(
-      `SELECT f.* FROM Files f
-        JOIN FileShares fs ON f.id = fs.file_id
-        WHERE fs.shared_with = ? AND f.username IN (${placeholders})
-          AND f.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        ORDER BY f.created_at DESC LIMIT 3`,
-      [username, ...friends]
+      .query(`SELECT * FROM FileShares WHERE shared_with = ?`, [username]);
+    console.log(
+      `[getRecentSharedByFriends] Shares for ${username}:`,
+      allShares.length
     );
-    res.status(200).json({ status: 200, data: files });
-    console.log(files);
+
+    // Pobierz 3 najnowsze pliki udostępnione dla tego użytkownika w ciągu ostatnich 7 dni
+    const [files] = await db.promise().query(
+      `SELECT f.id, f.username, f.filename, f.category, f.filepath, fs.created_at AS shared_at
+       FROM Files f
+       INNER JOIN FileShares fs ON f.id = fs.file_id
+       WHERE fs.shared_with = ?
+         AND fs.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+       ORDER BY fs.created_at DESC
+       LIMIT 3`,
+      [username]
+    );
+
+    console.log(
+      `[getRecentSharedByFriends] User: ${username}, Found files:`,
+      files.length
+    );
+
+    res.status(200).json({ status: 200, data: files || [] });
   } catch (err) {
+    console.error("[getRecentSharedByFriends] Error:", err.message);
     res.status(400).json({ status: 400, message: err.message });
   }
 };
@@ -389,7 +394,10 @@ module.exports.shareFileWithUsers = async (req, res) => {
     const placeholders = usernames.map(() => "?").join(",");
     const [existingUsers] = await db
       .promise()
-      .query(`SELECT login FROM Users WHERE login IN (${placeholders})`, usernames);
+      .query(
+        `SELECT login FROM Users WHERE login IN (${placeholders})`,
+        usernames
+      );
 
     const validUsernames = existingUsers.map((u) => u.login);
 

@@ -11,7 +11,7 @@ var playerRouter = require("./routes/PlayerRoute.js");
 var fileRouter = require("./routes/FileRouter.js");
 var friendRouter = require("./routes/FriendRouter.js");
 var friendRequestsRouter = require("./routes/FriendRequestsRouter.js");
-var studyRouter = require('./routes/StudyPlanRoute');
+var studyRouter = require("./routes/StudyPlanRoute");
 const multer = require("multer");
 const fs = require("fs");
 
@@ -62,7 +62,7 @@ app.use("/player", playerRouter);
 app.use("/file", fileRouter);
 app.use("/friend", friendRouter);
 app.use("/friend/requests", friendRequestsRouter);
-app.use('/study', studyRouter);
+app.use("/study", studyRouter);
 
 // ============================
 // 📌 Rejestracja użytkownika
@@ -140,7 +140,7 @@ app.post("/user/login", async function (req, res) {
         role: user.role,
         image: user.profile_picture,
       },
-      process.env.TOKEN_SECRET || 'dev-secret-key-for-local-development',
+      process.env.TOKEN_SECRET || "dev-secret-key-for-local-development",
       { expiresIn: "1h" }
     );
 
@@ -210,6 +210,24 @@ app.get("/user/all", async function (req, res) {
   } catch (err) {
     console.error("❌ Błąd przy pobieraniu użytkowników:", err);
     res.status(500).json({ status: 500, message: "Błąd serwera" });
+  }
+});
+
+// 🔍 DEBUG: Sprawdź co jest w FileShares
+app.get("/debug/fileshares", async function (req, res) {
+  try {
+    const [shares] = await db.promise().query("SELECT * FROM FileShares");
+    const [files] = await db
+      .promise()
+      .query("SELECT id, username, filename, created_at FROM Files");
+    res.status(200).json({
+      status: 200,
+      fileshares: shares,
+      files: files,
+    });
+  } catch (err) {
+    console.error("❌ Błąd:", err);
+    res.status(500).json({ status: 500, message: err.message });
   }
 });
 
