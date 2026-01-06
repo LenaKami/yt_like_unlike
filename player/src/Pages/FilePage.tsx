@@ -19,6 +19,8 @@ export const FilePage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   
   const [documentToShare, setDocumentToShare] = useState<FileFromBackend | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
@@ -154,9 +156,28 @@ export const FilePage = () => {
       return;
     }
 
-    // Znajdź nazwę folderu na podstawie ID
-    const folder = folders.find(f => f.id === Number(data.folderId));
-    const category = folder ? folder.foldername : 'Inne';
+    let category = '';
+
+    // Sprawdź czy użytkownik tworzy nowy folder
+    if (isCreatingNewFolder) {
+      if (!newFolderName.trim()) {
+        setMessage('❌ Wprowadź nazwę nowego folderu');
+        return;
+      }
+      
+      // Utwórz nowy folder
+      const folderResult = await fileApi.addFolder(username, newFolderName.trim());
+      if (!folderResult.success) {
+        setMessage(`❌ ${folderResult.message}`);
+        return;
+      }
+      
+      category = newFolderName.trim();
+    } else {
+      // Użyj istniejącego folderu
+      const folder = folders.find(f => f.id === Number(data.folderId));
+      category = folder ? folder.foldername : 'Inne';
+    }
 
     // Użyj nazwy przesłanego pliku zamiast pola filename
     const result = await fileApi.uploadFile(
@@ -170,6 +191,8 @@ export const FilePage = () => {
       setMessage('✅ Dokument dodany pomyślnie');
       reset();
       setShowAddModal(false);
+      setIsCreatingNewFolder(false);
+      setNewFolderName('');
       fetchData(); // Odśwież listę
     } else {
       setMessage(`❌ ${result.message}`);
@@ -322,13 +345,6 @@ export const FilePage = () => {
                 <PlusIcon className="w-5 h-5 inline mr-2" />
                 Dodaj materiał
               </button>
-              <button
-                onClick={() => setShowAddFolderModal(true)}
-                className="flex-1 log-in py-2.5 font-medium"
-              >
-                <PlusIcon className="w-5 h-5 inline mr-2" />
-                Dodaj folder
-              </button>
             </div>
           </div>
         </div>
@@ -386,6 +402,8 @@ export const FilePage = () => {
             <button
               onClick={() => {
                 setShowAddModal(false);
+                setIsCreatingNewFolder(false);
+                setNewFolderName('');
                 reset();
               }}
               className="absolute top-4 right-7 log-in-e text-slate-900"
@@ -402,10 +420,19 @@ export const FilePage = () => {
                 </label>
                 <select
                   {...register('folderId')}
+                  value={isCreatingNewFolder ? 'new' : undefined}
+                  onChange={(e) => {
+                    if (e.target.value === 'new') {
+                      setIsCreatingNewFolder(true);
+                    } else {
+                      setIsCreatingNewFolder(false);
+                      setNewFolderName('');
+                    }
+                  }}
                   className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
                 >
                   {folders.length === 0 ? (
-                    <option value="">Brak folderów - utwórz folder</option>
+                    <option value="">Brak folderów</option>
                   ) : (
                     folders.map((folder) => (
                       <option key={folder.id} value={folder.id}>
@@ -413,11 +440,27 @@ export const FilePage = () => {
                       </option>
                     ))
                   )}
+                  <option value="new">+ Utwórz nowy folder</option>
                 </select>
-                {errors.folderId && (
+                {errors.folderId && !isCreatingNewFolder && (
                   <p className="text-sm text-red-500 mt-1">{errors.folderId.message}</p>
                 )}
               </div>
+
+              {isCreatingNewFolder && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    Nazwa nowego folderu
+                  </label>
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="Wprowadź nazwę folderu"
+                    className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
@@ -439,6 +482,8 @@ export const FilePage = () => {
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
+                    setIsCreatingNewFolder(false);
+                    setNewFolderName('');
                     reset();
                   }}
                   className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
