@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { XMarkIcon, QuestionMarkCircleIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { Input } from '../ui/Input/Input';
+import ConfirmModal from '../ui/ConfirmModal';
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FriendFormData, validationSchema } from "../types_friends";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -173,6 +174,23 @@ export const FriendsPage = () => {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
+  // confirmation modal for removing friend
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingFriendId, setPendingFriendId] = useState<string | null>(null);
+
+  const openRemoveFriendModal = (id: string) => {
+    setPendingFriendId(id);
+    setConfirmOpen(true);
+  };
+
+  const doRemoveFriendPending = async () => {
+    if (!pendingFriendId) return;
+    const id = pendingFriendId;
+    setConfirmOpen(false);
+    setPendingFriendId(null);
+    await removeFriendBackend(id);
+  };
+
   const formatRelativeDate = (iso?: string) => {
     if (!iso) return '';
     const d = new Date(iso);
@@ -217,7 +235,7 @@ export const FriendsPage = () => {
         title="Usuń znajomego"
         onClick={(e) => {
           e.stopPropagation();
-          removeFriendBackend(f.id);
+          openRemoveFriendModal(f.id);
         }}
         className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 z-10"
       >
@@ -474,6 +492,12 @@ export const FriendsPage = () => {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={confirmOpen}
+        message={pendingFriendId ? 'Czy na pewno chcesz usunąć tego znajomego?' : ''}
+        onCancel={() => { setConfirmOpen(false); setPendingFriendId(null); }}
+        onConfirm={doRemoveFriendPending}
+      />
     </div>
   );
   

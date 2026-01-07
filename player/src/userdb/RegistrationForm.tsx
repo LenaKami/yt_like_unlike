@@ -14,6 +14,7 @@ export const RegistrationForm = () => {
 
   const [message, setMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<RegistrationFormData>({
     resolver: zodResolver(validationSchema),
   });
@@ -69,7 +70,30 @@ export const RegistrationForm = () => {
                   <Input label="E-mail" {...register("email", { required: true })} type="email" error={errors.email} inputClassName={classinput} labelClassName={classlabel} />
                 </div>
                 <div className="relative mb-4" data-twe-input-wrapper-init>
-                  <Input label="Hasło" {...register("password", { required: true })} type="password" error={errors.password} inputClassName={classinput} labelClassName={classlabel} />
+                  <div className="relative">
+                    <Input label="Hasło" {...register("password", { required: true })} type={showPassword ? 'text' : 'password'} error={errors.password} inputClassName={classinput} labelClassName={classlabel} />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                      onMouseDown={() => setShowPassword(true)}
+                      onMouseUp={() => setShowPassword(false)}
+                      onMouseLeave={() => setShowPassword(false)}
+                      onTouchStart={() => setShowPassword(true)}
+                      onTouchEnd={() => setShowPassword(false)}
+                      onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setShowPassword(true); } }}
+                      onKeyUp={(e) => { if (e.key === ' ' || e.key === 'Enter') { setShowPassword(false); } }}
+                      className="absolute right-2 top-8 text-slate-600 dark:text-slate-300 p-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showPassword ? 'M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-4.477-10-10a9.96 9.96 0 012.322-6.083M6.5 6.5L17.5 17.5M9.878 9.878A3 3 0 0114.122 14.122' : 'M2.458 12C3.732 7.943 7.523 5 12 5c5.523 0 10 4.477 10 10 0 1.021-.154 2.004-.438 2.925M15 12a3 3 0 11-6 0 3 3 0 016 0z'} />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="relative mb-4">
+                  <label className={classlabel}>Zdjęcie profilowe (opcjonalnie)</label>
+                  <input type="file" accept="image/*" onChange={handleImageChange} className={classinput} />
+                  {selectedImage && <div className="text-sm text-slate-700 dark:text-slate-300 mt-2">Wybrano: {selectedImage.name}</div>}
                 </div>
                 <button className="log-in" type="submit">
                   Zarejestruj

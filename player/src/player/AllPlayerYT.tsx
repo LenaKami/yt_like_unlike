@@ -5,6 +5,7 @@ import '../App.css';
 //import { Text } from '../ui';
 //import {WaNavLink} from '../onkrzyczy'
 import {AddWaNavLink} from '../onkrzycz2'
+import ConfirmModal from '../ui/ConfirmModal';
 import { routes } from "../routes";
 import { useAuthContext } from "../Auth/AuthContext";
 
@@ -76,8 +77,47 @@ export const AllPlayerYT = () => {
       ? players.filter(player => player.category === selectedCategory)
       : players;
 
+    // modal state for confirmation
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
 
-      const handleOnClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const openDeleteModal = (id: number) => {
+      setPendingDeleteId(id);
+      setConfirmOpen(true);
+    };
+
+    const doDeletePending = async () => {
+      if (pendingDeleteId === null) return;
+      const playerId = pendingDeleteId;
+      setConfirmOpen(false);
+      setPendingDeleteId(null);
+      try {
+        const token = localStorage.getItem("jwtToken");
+        if (!token) {
+          throw new Error("JWT token not found in localStorage");
+        }
+        const response = await fetch(`http://localhost:5000/player/delete/${playerId}`, {
+          method: "GET",
+          headers: {
+            Authorization: `${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        const dataa = await response.json();
+        if (response.ok) {
+          setMessage(`Success: ${dataa.message}`);
+          setPlayers(players.filter((player) => player._id !== playerId));
+        } else {
+          setMessage(`Error: ${dataa.message}`);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        setMessage(`Error: ${(error as Error).message}`);
+      }
+    };
+
+    const handleOnClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
         const button = event.currentTarget as HTMLButtonElement;
         const playerId = parseInt(button.name, 10); // Convert to number
     
@@ -177,12 +217,18 @@ export const AllPlayerYT = () => {
                 />
               </div>
               <button onClick={() => handleOnClickUpdate1(player._id)} className='h-10 w-30 bg-green-500 hover:bg-green-300 mr-2'>Update</button>
-              <button name={String(player._id)} onClick={handleOnClick}  className='h-10 w-30 bg-red-400 hover:bg-red-200'>Delete</button>
+              <button name={String(player._id)} onClick={() => openDeleteModal(player._id)}  className='h-10 w-30 bg-red-400 hover:bg-red-200'>Delete</button>
               </div>
             ))}
           </div>
           </>):(<></>)}
           {message && <p className="dark:text-green-200">{message}</p>}
+          <ConfirmModal
+            open={confirmOpen}
+            message={"Czy na pewno chcesz usunąć ten wpis?"}
+            onCancel={() => { setConfirmOpen(false); setPendingDeleteId(null); }}
+            onConfirm={doDeletePending}
+          />
         </div>
       );
       

@@ -5,6 +5,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type StudyFormData, validationSchema } from "../types_plan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { XMarkIcon,} from '@heroicons/react/24/solid';
+import ConfirmModal from '../ui/ConfirmModal';
 import { useAuthContext } from '../Auth/AuthContext';
 
 const STUDY_API = 'http://localhost:5000/study';
@@ -57,6 +58,8 @@ export const PlanNaukiPage = () => {
   const [end, setEnd] = useState('');
   const [playlist, setPlaylist] = useState('Playlist 1');
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const [monthCursor, setMonthCursor] = useState(() => {
     const d = new Date();
@@ -97,7 +100,8 @@ export const PlanNaukiPage = () => {
                 const dt=new Date(); dt.setHours(h); dt.setMinutes(m+row.duration_minutes);
                 return dt.toTimeString().slice(0,5);
               })() : '10:00';
-              return { id: String(row.id), name: row.title, date, start, end, playlist: '', active: !row.completed } as Task;
+              const playlistName = row.playlist || row.playlist_name || row.playlistId || 'Playlist 1';
+              return { id: String(row.id), name: row.title, date, start, end, playlist: playlistName, active: !row.completed } as Task;
             });
             setTasks(mapped);
           }
@@ -625,7 +629,7 @@ Dodaj
               <div className="flex gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => deleteTask(editingTask.id)}
+                  onClick={() => { if (editingTask) { setPendingDeleteId(editingTask.id); setConfirmOpen(true); } }}
                   className="flex-1 log-in-e py-2 bg-red-500 hover:bg-red-600"
                 >
                   Usuń
@@ -653,6 +657,17 @@ Dodaj
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmOpen}
+        message={pendingDeleteId ? 'Czy na pewno chcesz usunąć to zadanie?' : ''}
+        onCancel={() => { setConfirmOpen(false); setPendingDeleteId(null); }}
+        onConfirm={() => {
+          if (pendingDeleteId) deleteTask(pendingDeleteId);
+          setConfirmOpen(false);
+          setPendingDeleteId(null);
+        }}
+      />
 
       {/* Calendar modal */}
       {showCalendar && (

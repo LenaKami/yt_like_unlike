@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { jwtDecode } from 'jwt-decode';
+import jwtDecode from 'jwt-decode';
 
 const DEV_BYPASS = false;
 
@@ -99,20 +99,64 @@ const useAuth = () => {
     }, [expiration]);
 
     useEffect(() => {
-      // Ping do backendu co 30 sekund, aby odświeżać last_active
-      const pingInterval = setInterval(() => {
-        const token = localStorage.getItem('jwtToken');
-        if (token) {
-          fetch('/api/user/ping', {
-            method: 'GET',
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+      const pingActive = async () => {
+        try {
+          const token = localStorage.getItem('jwtToken');
+          if (!token || !username) return;
+          await fetch(`${API_BASE}/user/active`, {
+            method: 'POST',
             headers: {
-              'Authorization': token
-            }
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ username }),
           });
+        } catch (e) {
+          // ignore network errors
         }
-      }, 30000); // 30 sekund
-      return () => clearInterval(pingInterval);
-    }, [isLoggedIn]);
+      };
+
+      // initial ping when effect runs (if logged in)
+      if (isLoggedIn && username) pingActive();
+
+      // periodic ping
+      const pingInterval = setInterval(() => {
+        if (isLoggedIn && username) pingActive();
+      }, 30000);
+
+      // ping on visibility/focus (user returns to tab) and on navigation
+      const onVisibility = () => { if (document.visibilityState === 'visible') pingActive(); };
+      const onFocus = () => pingActive();
+
+      document.addEventListener('visibilitychange', onVisibility);
+      window.addEventListener('focus', onFocus);
+
+      // Detect client-side navigation (pushState/replaceState)
+      const wrapHistoryMethod = (type: 'pushState' | 'replaceState') => {
+        const original = (window.history as any)[type];
+        (window.history as any)[type] = function (...args: any[]) {
+          const result = original.apply(this, args);
+          window.dispatchEvent(new Event('locationchange'));
+          return result;
+        };
+      };
+      wrapHistoryMethod('pushState');
+      wrapHistoryMethod('replaceState');
+
+      const onLocationChange = () => { if (isLoggedIn && username) pingActive(); };
+      window.addEventListener('locationchange', onLocationChange);
+      window.addEventListener('popstate', onLocationChange);
+
+      return () => {
+        clearInterval(pingInterval);
+        document.removeEventListener('visibilitychange', onVisibility);
+        window.removeEventListener('focus', onFocus);
+        window.removeEventListener('locationchange', onLocationChange);
+        window.removeEventListener('popstate', onLocationChange);
+      };
+    }, [isLoggedIn, username]);
     return { isLoggedIn, username,image, logIn, logOut,isAdmin };
 };
 
