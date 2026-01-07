@@ -14,4 +14,7 @@ router.get('/plan/:planId/lessons', StudyController.getLessonsForPlan);
 router.post('/plan/lesson/update/:id', /*authorization.authenticate,*/ StudyController.updateLesson);
 router.get('/plan/lesson/delete/:id', /*authorization.authenticate,*/ StudyController.deleteLesson);
 
+// Statistics
+router.get('/statistics/:username', StudyController.getWeeklyStatistics);
+
 module.exports = router;

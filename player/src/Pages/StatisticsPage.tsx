@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
+import { useAuthContext } from '../Auth/AuthContext';
+
+const STUDY_API = 'http://localhost:5000/study';
 
 type DayStats = {
   day: string;
@@ -8,16 +11,41 @@ type DayStats = {
 };
 
 export const StatisticsPage = () => {
-  // Mockowane dane
-  const [weekStats] = useState<DayStats[]>([
-    { day: 'Pon', completed: 3, total: 4 },
-    { day: 'Wt', completed: 2, total: 3 },
-    { day: 'Śr', completed: 4, total: 4 },
-    { day: 'Czw', completed: 1, total: 2 },
-    { day: 'Pt', completed: 2, total: 2 },
+  const { isLoggedIn, username } = useAuthContext();
+  const [weekStats, setWeekStats] = useState<DayStats[]>([
+    { day: 'Pon', completed: 0, total: 0 },
+    { day: 'Wt', completed: 0, total: 0 },
+    { day: 'Śr', completed: 0, total: 0 },
+    { day: 'Czw', completed: 0, total: 0 },
+    { day: 'Pt', completed: 0, total: 0 },
     { day: 'Sob', completed: 0, total: 0 },
     { day: 'Ndz', completed: 0, total: 0 },
   ]);
+
+  // Load statistics from backend
+  useEffect(() => {
+    if (!isLoggedIn || !username) {
+      console.log('StatisticsPage: Not logged in or no username', { isLoggedIn, username });
+      return;
+    }
+    
+    const fetchStatistics = async () => {
+      try {
+        console.log('Fetching statistics for:', username);
+        const res = await fetch(`${STUDY_API}/statistics/${username}`);
+        const data = await res.json();
+        console.log('Statistics response:', data);
+        if (data.status === 200 && Array.isArray(data.data)) {
+          console.log('Setting week stats:', data.data);
+          setWeekStats(data.data);
+        }
+      } catch (e) {
+        console.error('Błąd ładowania statystyk:', e);
+      }
+    };
+
+    fetchStatistics();
+  }, [isLoggedIn, username]);
 
   const totalTasks = weekStats.reduce((sum, day) => sum + day.total, 0);
   const completedTasks = weekStats.reduce((sum, day) => sum + day.completed, 0);

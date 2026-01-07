@@ -250,30 +250,39 @@ setPlaylist('Playlist 1');
     if (!task) return;
     const isNowActive = !task.active;
     if (!isNowActive) {
-      // User marked as completed -> schedule deletion after delay
+      // User marked as completed -> update in backend and schedule deletion after delay
       setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: false } : t)));
-      // schedule delete in 5s
-      const timeoutId = window.setTimeout(async () => {
-        try {
-          if (!isNaN(Number(id))) {
-            await fetch(`${STUDY_API}/plan/lesson/delete/${id}`);
+      
+      // Mark as completed in backend
+      if (!isNaN(Number(id))) {
+        (async () => {
+          try {
+            await fetch(`${STUDY_API}/plan/lesson/update/${id}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ completed: true })
+            });
+          } catch (e) {
+            console.error('Error updating lesson', e);
           }
-        } catch (e) {
-          console.error('Error deleting lesson', e);
-        }
+        })();
+      }
+      
+      // schedule delete from UI in 5s
+      const timeoutId = window.setTimeout(async () => {
         // remove pending marker
         setPendingDeletions((p) => {
           const copy = { ...p };
           delete copy[id];
           return copy;
         });
-        // remove from UI
+        // remove from UI (but keep in database as completed)
         setTasks((s) => s.filter((t) => t.id !== id));
       }, 5000);
       setPendingDeletions((p) => ({ ...p, [id]: timeoutId }));
       return;
     }
-    // User re-activated (unlikely via checkbox) -> cancel pending delete
+    // User re-activated (unlikely via checkbox) -> cancel pending delete and mark as not completed
     if (pendingDeletions[id]) {
       clearTimeout(pendingDeletions[id]);
       setPendingDeletions((p) => {
@@ -283,6 +292,21 @@ setPlaylist('Playlist 1');
       });
     }
     setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: true } : t)));
+    
+    // Update in backend
+    if (!isNaN(Number(id))) {
+      (async () => {
+        try {
+          await fetch(`${STUDY_API}/plan/lesson/update/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed: false })
+          });
+        } catch (e) {
+          console.error('Error updating lesson', e);
+        }
+      })();
+    }
   };
 
   const undoDelete = (id: string) => {
