@@ -5,6 +5,15 @@
   text-align: center;
 }
 
+/* make container full-height like width */
+html, body, #root {
+  height: 100%;
+}
+
+.container {
+  height: 100%;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

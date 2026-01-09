@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
-import { fileApi, type FileFromBackend, type FolderFromBackend, type User } from '../api/fileApi';
+import { fileApi, type FileFromBackend, type FolderFromBackend, type User, type Friend } from '../api/fileApi';
 
 export const FilePage = () => {
   const classinput =
@@ -19,6 +19,8 @@ export const FilePage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   
   const [documentToShare, setDocumentToShare] = useState<FileFromBackend | null>(null);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
@@ -42,7 +44,8 @@ export const FilePage = () => {
   const [folders, setFolders] = useState<FolderFromBackend[]>([]);
   const [documents, setDocuments] = useState<FileFromBackend[]>([]);
   const [sharedDocuments, setSharedDocuments] = useState<FileFromBackend[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [alreadySharedWith, setAlreadySharedWith] = useState<string[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   useEffect(() => {
@@ -61,18 +64,17 @@ export const FilePage = () => {
     
     setLoading(true);
     try {
-      const [foldersData, filesData, sharedFilesData, usersData] = await Promise.all([
+      const [foldersData, filesData, sharedFilesData, friendsData] = await Promise.all([
         fileApi.getUserFolders(username),
         fileApi.getUserFiles(username),
         fileApi.getSharedFiles(username),
-        fileApi.getAllUsers()
+        fileApi.getFriends(username)
       ]);
       
       setFolders(foldersData);
       setDocuments(filesData);
       setSharedDocuments(sharedFilesData);
-      // Filtruj użytkowników - usuń zalogowanego użytkownika z listy
-      setUsers(usersData.filter(u => u.login !== username));
+      setFriends(friendsData);
     } catch (error) {
       console.error('Error fetching data:', error);
       setMessage('❌ Błąd podczas ładowania danych. Sprawdź czy backend działa.');
@@ -81,11 +83,16 @@ export const FilePage = () => {
     }
   };
 
-  const handleShareDocument = (docId: number) => {
+  const handleShareDocument = async (docId: number) => {
     const doc = documents.find(d => d.id === docId);
     if (doc) {
       setDocumentToShare(doc);
       setSelectedUsers([]);
+      // Pobierz listę użytkowników którym już udostępniono
+      const shared = await fileApi.getFileShares(docId);
+      console.log('Already shared with:', shared);
+      console.log('Friends list:', friends);
+      setAlreadySharedWith(shared);
       setShowShareModal(true);
     }
   };
@@ -149,13 +156,33 @@ export const FilePage = () => {
       return;
     }
 
-    // Znajdź nazwę folderu na podstawie ID
-    const folder = folders.find(f => f.id === Number(data.folderId));
-    const category = folder ? folder.foldername : 'Inne';
+    let category = '';
 
+    // Sprawdź czy użytkownik tworzy nowy folder
+    if (isCreatingNewFolder) {
+      if (!newFolderName.trim()) {
+        setMessage('❌ Wprowadź nazwę nowego folderu');
+        return;
+      }
+      
+      // Utwórz nowy folder
+      const folderResult = await fileApi.addFolder(username, newFolderName.trim());
+      if (!folderResult.success) {
+        setMessage(`❌ ${folderResult.message}`);
+        return;
+      }
+      
+      category = newFolderName.trim();
+    } else {
+      // Użyj istniejącego folderu
+      const folder = folders.find(f => f.id === Number(data.folderId));
+      category = folder ? folder.foldername : 'Inne';
+    }
+
+    // Użyj nazwy przesłanego pliku zamiast pola filename
     const result = await fileApi.uploadFile(
       username,
-      data.filename,
+      fileObj.name,
       category,
       fileObj
     );
@@ -164,6 +191,8 @@ export const FilePage = () => {
       setMessage('✅ Dokument dodany pomyślnie');
       reset();
       setShowAddModal(false);
+      setIsCreatingNewFolder(false);
+      setNewFolderName('');
       fetchData(); // Odśwież listę
     } else {
       setMessage(`❌ ${result.message}`);
@@ -217,6 +246,11 @@ export const FilePage = () => {
   const getFileExtension = (filename: string): string => {
     const parts = filename.split('.');
     return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : 'FILE';
+  };
+
+  const truncateFilename = (filename: string, maxLength: number = 15): string => {
+    if (filename.length <= maxLength) return filename;
+    return filename.substring(0, maxLength) + '...';
   };
 
   if (loading) return <div className="text-center text-white mt-10">Loading...</div>;
@@ -278,8 +312,8 @@ export const FilePage = () => {
                               className="flex-1 flex items-center gap-3 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
                             >
                               <span className="text-2xl">{getFileIcon(doc.filename).icon}</span>
-                              <div className="flex flex-col">
-                                <span>{doc.filename}</span>
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <span title={doc.filename}>{truncateFilename(doc.filename)}</span>
                                 <span className={`text-xs ${getFileIcon(doc.filename).color}`}>
                                   {getFileExtension(doc.filename)}
                                 </span>
@@ -310,13 +344,6 @@ export const FilePage = () => {
               >
                 <PlusIcon className="w-5 h-5 inline mr-2" />
                 Dodaj materiał
-              </button>
-              <button
-                onClick={() => setShowAddFolderModal(true)}
-                className="flex-1 log-in py-2.5 font-medium"
-              >
-                <PlusIcon className="w-5 h-5 inline mr-2" />
-                Dodaj folder
               </button>
             </div>
           </div>
@@ -349,8 +376,8 @@ export const FilePage = () => {
                     className="flex-1 flex items-center gap-3 text-left text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition"
                   >
                     <span className="text-2xl">{getFileIcon(doc.filename).icon}</span>
-                    <div className="flex flex-col">
-                      <span>{doc.filename}</span>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span title={doc.filename}>{truncateFilename(doc.filename)}</span>
                       <span className="text-xs text-slate-500 dark:text-slate-400">
                         Udostępnił: {doc.username}
                       </span>
@@ -375,6 +402,8 @@ export const FilePage = () => {
             <button
               onClick={() => {
                 setShowAddModal(false);
+                setIsCreatingNewFolder(false);
+                setNewFolderName('');
                 reset();
               }}
               className="absolute top-4 right-7 log-in-e text-slate-900"
@@ -391,10 +420,19 @@ export const FilePage = () => {
                 </label>
                 <select
                   {...register('folderId')}
+                  value={isCreatingNewFolder ? 'new' : undefined}
+                  onChange={(e) => {
+                    if (e.target.value === 'new') {
+                      setIsCreatingNewFolder(true);
+                    } else {
+                      setIsCreatingNewFolder(false);
+                      setNewFolderName('');
+                    }
+                  }}
                   className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
                 >
                   {folders.length === 0 ? (
-                    <option value="">Brak folderów - utwórz folder</option>
+                    <option value="">Brak folderów</option>
                   ) : (
                     folders.map((folder) => (
                       <option key={folder.id} value={folder.id}>
@@ -402,21 +440,27 @@ export const FilePage = () => {
                       </option>
                     ))
                   )}
+                  <option value="new">+ Utwórz nowy folder</option>
                 </select>
-                {errors.folderId && (
+                {errors.folderId && !isCreatingNewFolder && (
                   <p className="text-sm text-red-500 mt-1">{errors.folderId.message}</p>
                 )}
               </div>
 
-              <div>
-                <Input
-                  label="Nazwa pliku"
-                  {...register('filename')}
-                  inputClassName={classinput}
-                  labelClassName={classlabel}
-                  error={errors.filename}
-                />
-              </div>
+              {isCreatingNewFolder && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    Nazwa nowego folderu
+                  </label>
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="Wprowadź nazwę folderu"
+                    className="input-color w-full border border-gray-300 text-gray-900 sm:text-sm rounded-lg p-2.5 border-gray-600 focus:ring-slate-500 focus:border-slate-500"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
@@ -438,6 +482,8 @@ export const FilePage = () => {
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
+                    setIsCreatingNewFolder(false);
+                    setNewFolderName('');
                     reset();
                   }}
                   className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
@@ -529,25 +575,36 @@ export const FilePage = () => {
             
             <div className="space-y-3 max-h-64 overflow-y-auto mb-6">
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
-                Wybierz użytkowników:
+                Wybierz znajomych:
               </p>
-              {users.length === 0 ? (
-                <p className="text-sm text-slate-600 dark:text-slate-400">Brak użytkowników</p>
+              {friends.length === 0 ? (
+                <p className="text-sm text-slate-600 dark:text-slate-400">Brak znajomych. Dodaj znajomych w zakładce "Znajomi".</p>
               ) : (
-                users.map((user) => (
-                  <label
-                    key={user.login}
-                    className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.login)}
-                      onChange={() => toggleUserSelection(user.login)}
-                      className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                    />
-                    <span className="text-slate-900 dark:text-slate-100">{user.login}</span>
-                  </label>
-                ))
+                friends.map((friend) => {
+                  const isAlreadyShared = alreadySharedWith.includes(friend.login);
+                  return (
+                    <label
+                      key={friend.login}
+                      className={`flex items-center gap-3 p-3 transition ${
+                        isAlreadyShared 
+                          ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800' 
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedUsers.includes(friend.login)}
+                        onChange={() => !isAlreadyShared && toggleUserSelection(friend.login)}
+                        disabled={isAlreadyShared}
+                        className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-slate-900 dark:text-slate-100">
+                        {friend.login}
+                        {isAlreadyShared && <span className="text-xs text-slate-500 ml-2">(już udostępniono)</span>}
+                      </span>
+                    </label>
+                  );
+                })
               )}
             </div>
 

@@ -221,3 +221,17 @@ module.exports.deleteFile = async (req, res) => {
     res.status(400).json({ status: 400, message: err.message });
   }
 };
+
+// 🔹 Pobierz listę użytkowników którym plik został udostępniony
+module.exports.getFileShares = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [rows] = await db
+      .promise()
+      .query("SELECT shared_with FROM FileShares WHERE file_id = ?", [id]);
+    res.status(200).json({ status: 200, data: rows });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};

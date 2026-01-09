@@ -139,12 +139,81 @@ export const HomePage = () => {
     }
   };
 
+  const STUDY_API = `${API_BASE}/study`;
+
+  const relativeDayLabel = (yyyyMmDd: string) => {
+    try {
+      const parts = yyyyMmDd.split('-').map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const cmp = new Date(d);
+      cmp.setHours(0, 0, 0, 0);
+      const diffMs = cmp.getTime() - today.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return 'Dziś';
+      if (diffDays === 1) return 'Jutro';
+      return `Za ${diffDays} dni`;
+    } catch (e) {
+      return yyyyMmDd;
+    }
+  };
+
+  const fetchUpcomingTasks = async () => {
+    if (!auth.username) return;
+    try {
+      // get user's plan
+      const res = await fetch(`${API_BASE}/study/plan/user/${auth.username}`);
+      const j = await res.json();
+      if (j && j.status === 200 && Array.isArray(j.data) && j.data.length > 0) {
+        const plan = j.data[0];
+        const lres = await fetch(`${API_BASE}/study/plan/${plan.id}/lessons`);
+        const ljson = await lres.json();
+        if (ljson && ljson.status === 200 && Array.isArray(ljson.data)) {
+          const mapped: Task[] = ljson.data
+            .map((row: any) => {
+              const date = row.scheduled_at ? row.scheduled_at.slice(0, 10) : (row.created_at ? row.created_at.slice(0,10) : new Date().toISOString().slice(0,10));
+              const start = row.scheduled_at ? row.scheduled_at.slice(11, 16) : '09:00';
+              const end = row.duration_minutes ? (() => {
+                const [h, m] = start.split(':').map(Number);
+                const dt = new Date(); dt.setHours(h); dt.setMinutes(m + row.duration_minutes);
+                return dt.toTimeString().slice(0, 5);
+              })() : '10:00';
+              const playlistName = row.playlist || row.playlist_name || 'Playlist 1';
+              return { id: String(row.id), name: row.title, date, start, end, playlist: playlistName, active: !row.completed } as Task;
+            })
+            .filter((t: Task) => t.active !== false) // only incomplete
+            .sort((a: Task, b: Task) => (a.date + a.start).localeCompare(b.date + b.start))
+            .filter((t: Task) => {
+              // only upcoming: date >= today
+              const today = new Date(); today.setHours(0,0,0,0);
+              const parts = t.date.split('-').map(Number);
+              const d = new Date(parts[0], parts[1]-1, parts[2]); d.setHours(0,0,0,0);
+              return d.getTime() >= today.getTime();
+            })
+            .slice(0, 3);
+          setTasks(mapped);
+          return;
+        }
+      }
+      // fallback: empty
+      setTasks([]);
+    } catch (err) {
+      console.error('fetchUpcomingTasks error', err);
+    }
+  };
+
   useEffect(() => {
-    loadTasks();
-    const handler = () => loadTasks();
+    if (auth.username) {
+      fetchUpcomingTasks();
+    } else {
+      loadTasks();
+    }
+    const handler = () => { if (!auth.username) loadTasks(); else fetchUpcomingTasks(); };
     window.addEventListener('tasks-updated', handler);
     return () => window.removeEventListener('tasks-updated', handler);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.username]);
 
   useEffect(() => {
     try {
@@ -216,7 +285,7 @@ export const HomePage = () => {
                       />
                       <div className="flex-1 relative">
                         <div className={`font-medium ${t.active === false ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}> 
-                          {t.date} — {t.name}
+                          {relativeDayLabel(t.date)} — {t.name}
                         </div>
                         <div className="text-xs">
                           {t.start}-{t.end} • {t.playlist}

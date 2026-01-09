@@ -181,5 +181,96 @@ module.exports = {
     } catch (err) {
       res.status(500).json({ status: 500, message: err.message });
     }
+  },
+
+  // Get statistics for user's weekly tasks
+  getWeeklyStatistics: async (req, res) => {
+    try {
+      const username = req.params.username;
+      console.log('Getting statistics for user:', username);
+      
+      // Get user's plan
+      const [plans] = await db.promise().query('SELECT id FROM StudyPlans WHERE user_login = ?', [username]);
+      console.log('Found plans:', plans);
+      if (!plans || plans.length === 0) {
+        console.log('No plans found for user:', username);
+        return res.status(200).json({ status: 200, data: [] });
+      }
+      
+      const planId = plans[0].id;
+      console.log('Using plan ID:', planId);
+      
+      // Get current week's start and end
+      const now = new Date();
+      const dayOfWeek = now.getDay() || 7; // Sunday = 7
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - (dayOfWeek - 1));
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      
+      console.log('Week range:', { start: startOfWeek, end: endOfWeek });
+      
+      // Format dates for MySQL
+      const formatDate = (date) => {
+        return date.toISOString().slice(0, 19).replace('T', ' ');
+      };
+      
+      const startFormatted = formatDate(startOfWeek);
+      const endFormatted = formatDate(endOfWeek);
+      console.log('Formatted dates:', { start: startFormatted, end: endFormatted });
+      
+      // Get lessons for this week grouped by day
+      const [lessons] = await db.promise().query(
+        `SELECT 
+          DATE(scheduled_at) as lesson_date,
+          DAYOFWEEK(scheduled_at) as day_of_week,
+          COUNT(*) as total,
+          SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed
+         FROM Lessons 
+         WHERE plan_id = ? 
+         AND scheduled_at >= ? 
+         AND scheduled_at <= ?
+         GROUP BY DATE(scheduled_at), DAYOFWEEK(scheduled_at)
+         ORDER BY lesson_date`,
+        [planId, startFormatted, endFormatted]
+      );
+      
+      console.log('Lessons found:', lessons);
+      
+      // Create array for all 7 days of the week
+      const dayNames = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Ndz'];
+      const weekStats = [];
+      
+      for (let i = 0; i < 7; i++) {
+        const currentDay = new Date(startOfWeek);
+        currentDay.setDate(startOfWeek.getDate() + i);
+        const dateStr = currentDay.toISOString().slice(0, 10);
+        
+        // Find data for this day - convert lesson_date to string if it's a Date object
+        const dayData = lessons.find(l => {
+          if (!l.lesson_date) return false;
+          const lessonDateStr = l.lesson_date instanceof Date 
+            ? l.lesson_date.toISOString().slice(0, 10)
+            : l.lesson_date.toString().slice(0, 10);
+          return lessonDateStr === dateStr;
+        });
+        
+        weekStats.push({
+          day: dayNames[i],
+          date: dateStr,
+          completed: dayData ? parseInt(dayData.completed) : 0,
+          total: dayData ? parseInt(dayData.total) : 0
+        });
+      }
+      
+      console.log('Week stats result:', weekStats);
+      res.status(200).json({ status: 200, data: weekStats });
+    } catch (err) {
+      console.error('getWeeklyStatistics error:', err);
+      res.status(500).json({ status: 500, message: err.message });
+    }
   }
 };
