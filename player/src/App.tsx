@@ -9,6 +9,7 @@ import { ThemeContextProvider } from './Themee/ThemeContext';
 import { ThemeSwitcher } from './Themee/ThemeSwitcher';
 import { AuthContextProvider } from "./Auth/AuthContext";
 import { MusicContextProvider } from "./Music/MusicContext";
+import { ToastContainer } from "./Toast/ToastContainer";
 
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <MusicContextProvider>
             <ThemeSwitcher/>
             <RouterProvider router={router} />
+             <ToastContainer />
           </MusicContextProvider>
         </ThemeContextProvider>
         </AuthContextProvider>

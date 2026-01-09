@@ -6,6 +6,7 @@ import { type StudyFormData, validationSchema } from "../types_plan";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { XMarkIcon,} from '@heroicons/react/24/solid';
 import { useAuthContext } from '../Auth/AuthContext';
+import { useToast } from '../Toast/ToastContext';
 
 const STUDY_API = 'http://localhost:5000/study';
 
@@ -73,6 +74,7 @@ export const PlanNaukiPage = () => {
   const { isLoggedIn, username } = useAuthContext();
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
   const [pendingDeletions, setPendingDeletions] = useState<Record<string, number>>({});
+  const { showToast } = useToast();
 
   // Load plans and lessons from backend for logged in user
   useEffect(() => {
@@ -157,6 +159,9 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
     [...prev, newTask].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
   );
 
+  // show toast for added task
+  showToast('Zadanie dodane', 'success');
+
   // persist to backend if we have an active plan and logged in
   if (activePlanId && username) {
     (async () => {
@@ -178,9 +183,11 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
           setTasks((prev) => prev.map((t) => (t.id === tempId ? { ...t, id: String(j.data.id) } : t)));
         } else {
           console.warn('Failed to get id from add lesson response', j);
+          showToast('Nie udało się zapisać zadania na serwerze', 'error');
         }
       } catch (e) {
         console.error(e);
+        showToast('Błąd podczas zapisywania zadania', 'error');
       }
     })();
   }
@@ -230,7 +237,8 @@ setPlaylist('Playlist 1');
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ title: name, scheduled_at: date + ' ' + start + ':00', duration_minutes: Math.max(1, (parseInt(end.slice(0,2))*60+parseInt(end.slice(3)))-(parseInt(start.slice(0,2))*60+parseInt(start.slice(3)))) })
         });
-      } catch(e){ console.error(e); }
+        showToast('Zapisano zmiany', 'success');
+      } catch(e){ console.error(e); showToast('Błąd podczas zapisywania zmian', 'error'); }
     })();
     setShowEditModal(false);
     setEditingTask(null);
@@ -242,6 +250,7 @@ setPlaylist('Playlist 1');
     (async ()=>{
       try { await fetch(`${STUDY_API}/plan/lesson/delete/${id}`); } catch(e){console.error(e)}
     })();
+    showToast('Zadanie usunięte', 'success');
     setShowEditModal(false);
     setEditingTask(null);
   };
@@ -257,9 +266,11 @@ setPlaylist('Playlist 1');
         try {
           if (!isNaN(Number(id))) {
             await fetch(`${STUDY_API}/plan/lesson/delete/${id}`);
+            showToast('Zadanie zostało usunięte', 'success');
           }
         } catch (e) {
           console.error('Error deleting lesson', e);
+          showToast('Błąd podczas usuwania zadania', 'error');
         }
         // remove pending marker
         setPendingDeletions((p) => {
@@ -271,6 +282,7 @@ setPlaylist('Playlist 1');
         setTasks((s) => s.filter((t) => t.id !== id));
       }, 5000);
       setPendingDeletions((p) => ({ ...p, [id]: timeoutId }));
+      showToast('Zadanie oznaczone jako wykonane. Cofnij w ciągu 5s', 'info');
       return;
     }
     // User re-activated (unlikely via checkbox) -> cancel pending delete
@@ -281,6 +293,7 @@ setPlaylist('Playlist 1');
         delete copy[id];
         return copy;
       });
+      showToast('Przywrócono zadanie', 'info');
     }
     setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: true } : t)));
   };
@@ -294,6 +307,7 @@ setPlaylist('Playlist 1');
         return copy;
       });
       setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: true } : t)));
+      showToast('Cofnięto usunięcie', 'info');
     }
   };
 
@@ -530,7 +544,6 @@ Dodaj
         </section>
         
       </div>
-<p className="text-green-200">message</p>
 
       {/* EDIT TASK MODAL */}
       {showEditModal && editingTask && (

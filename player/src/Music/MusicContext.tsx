@@ -1,15 +1,21 @@
 import { createContext, useContext, useState, useRef, ReactNode } from 'react';
 import ReactPlayer from 'react-player';
 
-type MusicFolder = {
+export type MusicFolder = {
   id: number;
   name: string;
   icon: string;
+  type?: 'category' | 'subcategory' | 'playlist' | 'local' | 'friends' | 'friend-playlist';
+  owner?: string;
+  song_count?: number;
 };
 
-type Song = {
+export type Song = {
   id: number;
-  name: string;
+  title?: string;
+  name?: string;
+  artist?: string;
+  source?: string;
   youtubeUrl: string;
   folderId: number;
 };
@@ -31,6 +37,7 @@ type MusicContextType = {
   handlePreviousSong: () => void;
   handleSongEnded: () => void;
   getYouTubeThumbnail: (url: string) => string;
+  canAddSongs: (folder: MusicFolder) => boolean;
 };
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -41,11 +48,10 @@ export const MusicContextProvider = ({ children }: { children: ReactNode }) => {
   const playerRef = useRef<ReactPlayer>(null);
 
   const [folders, setFolders] = useState<MusicFolder[]>([
-    { id: 1, name: 'Nauka', icon: '📚' },
-    { id: 2, name: 'Lokalizacja', icon: '📍' },
-    { id: 3, name: 'Gatunki', icon: '🎸' },
-    { id: 4, name: 'Znajomi', icon: '👥' },
-    { id: 5, name: 'Playlista1', icon: '🎵' },
+    { id: 1, name: 'Nauka', icon: '📚', type: 'category' },
+    { id: 2, name: 'Lokalizacja', icon: '📍', type: 'category' },
+    { id: 3, name: 'Gatunki', icon: '🎸', type: 'category' },
+    { id: 4, name: 'Znajomi', icon: '👥', type: 'friends' },
   ]);
 
   const [songs, setSongs] = useState<Song[]>([
@@ -106,6 +112,13 @@ export const MusicContextProvider = ({ children }: { children: ReactNode }) => {
     return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : '';
   };
 
+  // Decides whether the UI should show the 'add song' button for a folder
+  const canAddSongs = (folder: MusicFolder) => {
+    // hide add button in subcategories (they should show only DB songs)
+    // show add button for user-owned playlists or local folders
+    return folder.type === 'playlist' || folder.type === 'local';
+  };
+
   return (
     <MusicContext.Provider
       value={{
@@ -125,6 +138,7 @@ export const MusicContextProvider = ({ children }: { children: ReactNode }) => {
         handlePreviousSong,
         handleSongEnded,
         getYouTubeThumbnail,
+        canAddSongs,
       }}
     >
       {children}
