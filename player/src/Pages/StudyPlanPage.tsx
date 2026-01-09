@@ -7,8 +7,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { XMarkIcon,} from '@heroicons/react/24/solid';
 import { useAuthContext } from '../Auth/AuthContext';
 import { useToast } from '../Toast/ToastContext';
+import musicApi from '../api/musicApi';
 
 const STUDY_API = 'http://localhost:5000/study';
+
+// ===== Playlist Option Type =====
+type PlaylistOption = {
+  id: string | number;
+  name: string;
+  type: 'subcategory' | 'playlist';
+};
+
+// ===== Playlist Ref Type (for storing in tasks) =====
+type PlaylistRef = {
+  type: 'subcategory' | 'playlist';
+  id: number;
+};
 
 // ===== Types =====
 type Task = {
@@ -17,7 +31,7 @@ type Task = {
   date: string; // yyyy-mm-dd
   start: string; // hh:mm
   end: string; // hh:mm
-  playlist: string;
+  playlist: PlaylistRef | null;
   active?: boolean;
 };
 
@@ -46,6 +60,34 @@ const toDate = (yyyyMmDd: string) => {
 const sameMonth = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 
+// ===== Helper to convert PlaylistRef back to ID string (e.g., { type: "subcategory", id: 15 } -> "sub_15") =====
+const playlistRefToId = (ref: PlaylistRef | null): string => {
+  if (!ref) return '';
+  const prefix = ref.type === 'subcategory' ? 'sub' : 'play';
+  return `${prefix}_${ref.id}`;
+};
+
+// ===== Helper to parse playlist ID (e.g., "sub_15" -> { type: "subcategory", id: 15 }) =====
+const parsePlaylistId = (playlistId: string): PlaylistRef | null => {
+  if (!playlistId) return null;
+  const [type, idStr] = playlistId.split('_');
+  const id = parseInt(idStr, 10);
+  if (isNaN(id)) return null;
+  const fullType = type === 'sub' ? 'subcategory' : type === 'play' ? 'playlist' : null;
+  return fullType ? { type: fullType as 'subcategory' | 'playlist', id } : null;
+};
+
+// ===== Helper to get playlist name from PlaylistRef =====
+const getPlaylistName = (playlistRef: PlaylistRef | null, options: PlaylistOption[]): string => {
+  if (!playlistRef) return '';
+  // opt.id is like "sub_15" or "play_16", we need to extract the numeric part and compare
+  const option = options.find(opt => 
+    opt.type === playlistRef.type && 
+    String(opt.id).split('_').pop() === String(playlistRef.id)
+  );
+  return option ? option.name : '';
+};
+
 // ===== Component =====
 export const PlanNaukiPage = () => {
   const classinput =
@@ -56,7 +98,8 @@ export const PlanNaukiPage = () => {
   const [date, setDate] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
-  const [playlist, setPlaylist] = useState('Playlist 1');
+  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOption[]>([]);
+  const [playlist, setPlaylist] = useState<string>('');
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [monthCursor, setMonthCursor] = useState(() => {
@@ -74,8 +117,69 @@ export const PlanNaukiPage = () => {
   const { isLoggedIn, username } = useAuthContext();
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
   const [pendingDeletions, setPendingDeletions] = useState<Record<string, number>>({});
+  const [taskPlaylistMap, setTaskPlaylistMap] = useState<Record<string, PlaylistRef>>({}); // Map of taskId -> PlaylistRef
   const { showToast } = useToast();
+  // Load playlist mapping from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('taskPlaylistMap');
+      if (saved) {
+        setTaskPlaylistMap(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Failed to load taskPlaylistMap', e);
+    }
+  }, []);
 
+  // Save playlist mapping to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('taskPlaylistMap', JSON.stringify(taskPlaylistMap));
+    } catch (e) {
+      console.error('Failed to save taskPlaylistMap', e);
+    }
+  }, [taskPlaylistMap]);
+  // Load playlists (categories, subcategories, user playlists)
+  useEffect(() => {
+    (async () => {
+      try {
+        const options: PlaylistOption[] = [];
+
+        // Get categories and their subcategories
+        const categories = await musicApi.getCategories();
+        for (const cat of categories) {
+          const subcats = await musicApi.getSubcategories(cat.id);
+          for (const subcat of subcats) {
+            options.push({
+              id: `sub_${subcat.id}`,
+              name: `${subcat.name}`,
+              type: 'subcategory'
+            });
+          }
+        }
+
+        // Get user playlists if logged in
+        if (isLoggedIn && username) {
+          const userPlaylists = await musicApi.getUserPlaylists(username);
+          for (const p of userPlaylists) {
+            options.push({
+              id: `play_${p.id}`,
+              name: p.name,
+              type: 'playlist'
+            });
+          }
+        }
+
+        setPlaylistOptions(options);
+        // Set default to first option
+        if (options.length > 0 && !playlist) {
+          setPlaylist(String(options[0].id));
+        }
+      } catch (e) {
+        console.error('Błąd ładowania playlist:', e);
+      }
+    })();
+  }, [isLoggedIn, username]);
   // Load plans and lessons from backend for logged in user
   useEffect(() => {
     if (!isLoggedIn || !username) return;
@@ -99,7 +203,14 @@ export const PlanNaukiPage = () => {
                 const dt=new Date(); dt.setHours(h); dt.setMinutes(m+row.duration_minutes);
                 return dt.toTimeString().slice(0,5);
               })() : '10:00';
-              return { id: String(row.id), name: row.title, date, start, end, playlist: '', active: !row.completed } as Task;
+              // Build PlaylistRef from backend data or fallback to localStorage
+              let playlistRef: PlaylistRef | null = null;
+              if (row.playlist_type && row.playlist_id) {
+                playlistRef = { type: row.playlist_type, id: row.playlist_id };
+              } else {
+                playlistRef = taskPlaylistMap[String(row.id)] || null;
+              }
+              return { id: String(row.id), name: row.title, date, start, end, playlist: playlistRef, active: !row.completed } as Task;
             });
             setTasks(mapped);
           }
@@ -117,7 +228,7 @@ export const PlanNaukiPage = () => {
         console.error('Błąd ładowania planu:', e);
       }
     })();
-  }, [isLoggedIn, username]);
+  }, [isLoggedIn, username, taskPlaylistMap]);
 
   // keep controlled playlist in sync with react-hook-form value for validation
   React.useEffect(() => {
@@ -142,6 +253,9 @@ const tasksByDate = useMemo(() => {
 
 const onSubmit: SubmitHandler<StudyFormData> = (data) => {
   console.log('onSubmit called', data);
+  // Parse playlist ID to get type and id
+  const playlistRef = parsePlaylistId(playlist);
+  
   // create task object locally; id will be replaced with backend id when available
   const tempId = String(Date.now());
   const newTask: Task = {
@@ -150,7 +264,7 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
     date: data.dataaa,
     start: data.startg,
     end: data.endg,
-    playlist,
+    playlist: playlistRef,
     active: true,
   };
 
@@ -175,12 +289,19 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
             description: '',
             scheduled_at: data.dataaa + ' ' + data.startg + ':00',
             duration_minutes: Math.max(1, (parseInt(data.endg.slice(0, 2)) * 60 + parseInt(data.endg.slice(3))) - (parseInt(data.startg.slice(0, 2)) * 60 + parseInt(data.startg.slice(3)))),
+            playlist_type: playlistRef?.type || null,
+            playlist_id: playlistRef?.id || null,
           }),
         });
         const j = await res.json();
         if (j && j.status === 200 && j.data && j.data.id) {
           // replace temp id with real id from backend
-          setTasks((prev) => prev.map((t) => (t.id === tempId ? { ...t, id: String(j.data.id) } : t)));
+          const realId = String(j.data.id);
+          setTasks((prev) => prev.map((t) => (t.id === tempId ? { ...t, id: realId } : t)));
+          // Save the playlist mapping for this task
+          if (playlistRef) {
+            setTaskPlaylistMap((prev) => ({ ...prev, [realId]: playlistRef }));
+          }
         } else {
           console.warn('Failed to get id from add lesson response', j);
           showToast('Nie udało się zapisać zadania na serwerze', 'error');
@@ -193,18 +314,23 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
   }
 
   reset();
-  setPlaylist('Playlist 1');
+  if (playlistOptions.length > 0) {
+    setPlaylist(String(playlistOptions[0].id));
+  }
 };
 
 
 const clearForm = () => {
 reset();
-setPlaylist('Playlist 1');
+if (playlistOptions.length > 0) {
+  setPlaylist(String(playlistOptions[0].id));
+}
 };
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !date || !start || !end) return;
-    const newTask: Task = { id: String(Date.now()), name, date, start, end, playlist, active: true };
+    const playlistRef = parsePlaylistId(playlist);
+    const newTask: Task = { id: String(Date.now()), name, date, start, end, playlist: playlistRef, active: true };
     setTasks((s) => [...s, newTask].sort((a,b)=> (a.date+a.start).localeCompare(b.date+b.start)));
     clearForm();
   };
@@ -216,17 +342,18 @@ setPlaylist('Playlist 1');
       setDate(task.date);
       setStart(task.start);
       setEnd(task.end);
-      setPlaylist(task.playlist);
+      setPlaylist(playlistRefToId(task.playlist));
       setShowEditModal(true);
     }
   };
 
   const saveEdit = () => {
     if (!editingTask || !name || !date || !start || !end) return;
+    const playlistRef = parsePlaylistId(playlist);
     setTasks((prev) =>
       prev.map(t => 
         t.id === editingTask.id 
-          ? { ...t, name, date, start, end, playlist }
+          ? { ...t, name, date, start, end, playlist: playlistRef }
           : t
       ).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
     );
@@ -235,9 +362,19 @@ setPlaylist('Playlist 1');
       try {
         await fetch(`${STUDY_API}/plan/lesson/update/${editingTask.id}`, {
           method: 'POST', headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ title: name, scheduled_at: date + ' ' + start + ':00', duration_minutes: Math.max(1, (parseInt(end.slice(0,2))*60+parseInt(end.slice(3)))-(parseInt(start.slice(0,2))*60+parseInt(start.slice(3)))) })
+          body: JSON.stringify({ 
+            title: name, 
+            scheduled_at: date + ' ' + start + ':00', 
+            duration_minutes: Math.max(1, (parseInt(end.slice(0,2))*60+parseInt(end.slice(3)))-(parseInt(start.slice(0,2))*60+parseInt(start.slice(3)))),
+            playlist_type: playlistRef?.type || null,
+            playlist_id: playlistRef?.id || null,
+          })
         });
         showToast('Zapisano zmiany', 'success');
+        // Save the playlist mapping for this task
+        if (playlistRef) {
+          setTaskPlaylistMap((prev) => ({ ...prev, [editingTask.id]: playlistRef }));
+        }
       } catch(e){ console.error(e); showToast('Błąd podczas zapisywania zmian', 'error'); }
     })();
     setShowEditModal(false);
@@ -250,6 +387,12 @@ setPlaylist('Playlist 1');
     (async ()=>{
       try { await fetch(`${STUDY_API}/plan/lesson/delete/${id}`); } catch(e){console.error(e)}
     })();
+    // Remove from playlist mapping
+    setTaskPlaylistMap((prev) => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
     showToast('Zadanie usunięte', 'success');
     setShowEditModal(false);
     setEditingTask(null);
@@ -409,9 +552,15 @@ value={playlist}
 onChange={(e) => setPlaylist(e.target.value)}
 className={classinput}
 >
-<option>Playlist 1</option>
-<option>Playlist 2</option>
-<option>Playlist 3</option>
+{playlistOptions.length === 0 ? (
+  <option>Brak dostępnych playlist</option>
+) : (
+  playlistOptions.map((opt) => (
+    <option key={opt.id} value={opt.id}>
+      {opt.name}
+    </option>
+  ))
+)}
 </select>
 </div>
 
@@ -463,7 +612,7 @@ Dodaj
             {t.date} — {t.name}
           </div>
           <div className="text-xs">
-            {t.start}-{t.end} • {t.playlist}
+            {t.start}-{t.end} • {getPlaylistName(t.playlist, playlistOptions)}
           </div>
           <div className="absolute top-0 right-0 flex items-center gap-2">
             {pendingDeletions[t.id] ? (
@@ -517,7 +666,7 @@ Dodaj
             {t.date} — {t.name}
           </div>
           <div className="text-xs">
-            {t.start}-{t.end} • {t.playlist}
+            {t.start}-{t.end} • {getPlaylistName(t.playlist, playlistOptions)}
           </div>
           <div className="absolute top-0 right-0 flex items-center gap-2">
             {pendingDeletions[t.id] ? (
@@ -605,9 +754,15 @@ Dodaj
                   onChange={(e) => setPlaylist(e.target.value)}
                   className={classinput}
                 >
-                  <option>Playlist 1</option>
-                  <option>Playlist 2</option>
-                  <option>Playlist 3</option>
+                  {playlistOptions.length === 0 ? (
+                    <option>Brak dostępnych playlist</option>
+                  ) : (
+                    playlistOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.name}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
@@ -680,7 +835,7 @@ Dodaj
                       <div
                         key={t.id}
                         className="flex items-center space-x-1 cursor-pointer"
-                        title={`${t.start} - ${t.end} • ${t.playlist}`}
+                        title={`${t.start} - ${t.end} • ${getPlaylistName(t.playlist, playlistOptions)}`}
                       >
                         <span className={`w-2 h-2 rounded-full inline-block ${t.active ? 'bg-orange-500' : 'bg-gray-400'}`} />
                         <span className={`truncate text-xs ${t.active ? '' : 'line-through'}`}>{t.name}</span>

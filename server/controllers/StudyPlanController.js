@@ -18,6 +18,8 @@ const createLessonsTableQuery = `
     description TEXT,
     scheduled_at DATETIME,
     duration_minutes INT DEFAULT 0,
+    playlist_type VARCHAR(20),
+    playlist_id INT,
     completed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (plan_id) REFERENCES StudyPlans(id) ON DELETE CASCADE
@@ -89,7 +91,7 @@ module.exports = {
   // Add lesson to a plan
   addLesson: async (req, res) => {
     try {
-      let { plan_id, title, description, scheduled_at, duration_minutes } = req.body;
+      let { plan_id, title, description, scheduled_at, duration_minutes, playlist_type, playlist_id } = req.body;
       if (!plan_id || !title) return res.status(400).json({ status: 400, message: 'Brak plan_id lub title' });
       // normalize plan_id to integer
       plan_id = parseInt(plan_id, 10);
@@ -98,9 +100,19 @@ module.exports = {
       if (scheduled_at && typeof scheduled_at === 'string') {
         scheduled_at = scheduled_at.replace('T', ' ');
       }
+      // Validate and normalize playlist_type and playlist_id
+      if (playlist_type && !['subcategory', 'playlist'].includes(playlist_type)) {
+        return res.status(400).json({ status: 400, message: 'Nieprawidłowy playlist_type' });
+      }
+      if (playlist_id) {
+        playlist_id = parseInt(playlist_id, 10);
+        if (isNaN(playlist_id)) {
+          return res.status(400).json({ status: 400, message: 'Nieprawidłowe playlist_id' });
+        }
+      }
       const [result] = await db.promise().query(
-        'INSERT INTO Lessons (plan_id, title, description, scheduled_at, duration_minutes) VALUES (?,?,?,?,?)',
-        [plan_id, title, description || null, scheduled_at || null, duration_minutes || 0]
+        'INSERT INTO Lessons (plan_id, title, description, scheduled_at, duration_minutes, playlist_type, playlist_id) VALUES (?,?,?,?,?,?,?)',
+        [plan_id, title, description || null, scheduled_at || null, duration_minutes || 0, playlist_type || null, playlist_id || null]
       );
       res.status(200).json({ status: 200, data: { id: result.insertId }, message: 'Lekcja dodana' });
     } catch (err) {
@@ -124,12 +136,35 @@ module.exports = {
   updateLesson: async (req, res) => {
     try {
       const id = req.params.id;
-      const { title, description, scheduled_at, duration_minutes, completed } = req.body;
+      const { title, description, scheduled_at, duration_minutes, completed, playlist_type, playlist_id } = req.body;
       const [rows] = await db.promise().query('SELECT * FROM Lessons WHERE id = ?', [id]);
       if (rows.length === 0) return res.status(404).json({ status: 404, message: 'Lekcja nie znaleziona' });
+      
+      // Validate playlist_type if provided
+      if (playlist_type && !['subcategory', 'playlist'].includes(playlist_type)) {
+        return res.status(400).json({ status: 400, message: 'Nieprawidłowy playlist_type' });
+      }
+      // Normalize playlist_id if provided
+      let normalizedPlaylistId = playlist_id;
+      if (playlist_id) {
+        normalizedPlaylistId = parseInt(playlist_id, 10);
+        if (isNaN(normalizedPlaylistId)) {
+          return res.status(400).json({ status: 400, message: 'Nieprawidłowe playlist_id' });
+        }
+      }
+      
       await db.promise().query(
-        'UPDATE Lessons SET title = ?, description = ?, scheduled_at = ?, duration_minutes = ?, completed = ? WHERE id = ?',
-        [title || rows[0].title, description || rows[0].description, scheduled_at || rows[0].scheduled_at, duration_minutes ?? rows[0].duration_minutes, completed ?? rows[0].completed, id]
+        'UPDATE Lessons SET title = ?, description = ?, scheduled_at = ?, duration_minutes = ?, completed = ?, playlist_type = ?, playlist_id = ? WHERE id = ?',
+        [
+          title || rows[0].title,
+          description || rows[0].description,
+          scheduled_at || rows[0].scheduled_at,
+          duration_minutes ?? rows[0].duration_minutes,
+          completed ?? rows[0].completed,
+          playlist_type ?? rows[0].playlist_type,
+          normalizedPlaylistId ?? rows[0].playlist_id,
+          id
+        ]
       );
       res.status(200).json({ status: 200, message: 'Lekcja zaktualizowana' });
     } catch (err) {
