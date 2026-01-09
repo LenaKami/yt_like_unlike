@@ -2,6 +2,18 @@
 import { useEffect, useState } from 'react';
 import { Text } from '../ui/Text/Text';
 import { useAuthContext } from '../Auth/AuthContext';
+import musicApi from '../api/musicApi';
+
+type PlaylistRef = {
+  type: 'subcategory' | 'playlist';
+  id: number;
+};
+
+type PlaylistOption = {
+  id: string | number;
+  name: string;
+  type: 'subcategory' | 'playlist';
+};
 
 type SharedFile = {
   id: number;
@@ -18,7 +30,7 @@ type Task = {
   date: string;
   start: string;
   end: string;
-  playlist: string;
+  playlist: PlaylistRef | null;
   active?: boolean;
 };
 
@@ -33,8 +45,20 @@ type Friend = {
 
 const STORAGE_KEY = 'studyPlanTasks';
 
+// ===== Helper to get playlist name from PlaylistRef =====
+const getPlaylistName = (playlistRef: PlaylistRef | null, options: PlaylistOption[]): string => {
+  if (!playlistRef) return '';
+  // opt.id is like "sub_15" or "play_16", we need to extract the numeric part and compare
+  const option = options.find(opt => 
+    opt.type === playlistRef.type && 
+    String(opt.id).split('_').pop() === String(playlistRef.id)
+  );
+  return option ? option.name : '';
+};
+
 export const HomePage = () => {
   const [recentSharedFiles, setRecentSharedFiles] = useState<SharedFile[]>([]);
+  const [playlistOptions, setPlaylistOptions] = useState<PlaylistOption[]>([]);
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: 't1',
@@ -42,7 +66,7 @@ export const HomePage = () => {
       date: '2025-12-16',
       start: '10:00',
       end: '11:30',
-      playlist: 'Nauka',
+      playlist: null,
       active: true,
     },
     {
@@ -51,7 +75,7 @@ export const HomePage = () => {
       date: '2025-12-17',
       start: '14:00',
       end: '15:00',
-      playlist: 'Nauka',
+      playlist: null,
       active: true,
     },
   ]);
@@ -86,6 +110,44 @@ export const HomePage = () => {
     };
     fetchRecentSharedFiles();
   }, [auth.username]);
+
+  // Load playlist options
+  useEffect(() => {
+    (async () => {
+      try {
+        const options: PlaylistOption[] = [];
+
+        // Get categories and their subcategories
+        const categories = await musicApi.getCategories();
+        for (const cat of categories) {
+          const subcats = await musicApi.getSubcategories(cat.id);
+          for (const subcat of subcats) {
+            options.push({
+              id: `sub_${subcat.id}`,
+              name: `${subcat.name}`,
+              type: 'subcategory'
+            });
+          }
+        }
+
+        // Get user playlists if logged in
+        if (auth.isLoggedIn && auth.username) {
+          const userPlaylists = await musicApi.getUserPlaylists(auth.username);
+          for (const p of userPlaylists) {
+            options.push({
+              id: `play_${p.id}`,
+              name: p.name,
+              type: 'playlist'
+            });
+          }
+        }
+
+        setPlaylistOptions(options);
+      } catch (e) {
+        console.error('Błąd ładowania playlist:', e);
+      }
+    })();
+  }, [auth.isLoggedIn, auth.username]);
 
   useEffect(() => {
     if (!auth.username) return;
@@ -179,8 +241,12 @@ export const HomePage = () => {
                 const dt = new Date(); dt.setHours(h); dt.setMinutes(m + row.duration_minutes);
                 return dt.toTimeString().slice(0, 5);
               })() : '10:00';
-              const playlistName = row.playlist || row.playlist_name || 'Playlist 1';
-              return { id: String(row.id), name: row.title, date, start, end, playlist: playlistName, active: !row.completed } as Task;
+              // Build PlaylistRef from backend data
+              let playlistRef: PlaylistRef | null = null;
+              if (row.playlist_type && row.playlist_id) {
+                playlistRef = { type: row.playlist_type, id: row.playlist_id };
+              }
+              return { id: String(row.id), name: row.title, date, start, end, playlist: playlistRef, active: !row.completed } as Task;
             })
             .filter((t: Task) => t.active !== false) // only incomplete
             .sort((a: Task, b: Task) => (a.date + a.start).localeCompare(b.date + b.start))
@@ -288,7 +354,7 @@ export const HomePage = () => {
                           {relativeDayLabel(t.date)} — {t.name}
                         </div>
                         <div className="text-xs">
-                          {t.start}-{t.end} • {t.playlist}
+                          {t.start}-{t.end} • {getPlaylistName(t.playlist, playlistOptions)}
                         </div>
                       </div>
                     </li>
