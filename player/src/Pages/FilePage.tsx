@@ -5,7 +5,7 @@ import { Input } from "../ui"
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
-import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
+import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { fileApi, type FileFromBackend, type FolderFromBackend, type User, type Friend } from '../api/fileApi';
 
 export const FilePage = () => {
@@ -138,6 +138,29 @@ export const FilePage = () => {
       setMessage('✅ Plik pobrany pomyślnie');
     } else {
       setMessage('❌ Błąd podczas pobierania pliku');
+    }
+    
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleDeleteFile = async (docId: number) => {
+    if (!username) return;
+    
+    const doc = documents.find(d => d.id === docId);
+    if (!doc) return;
+    
+    if (!confirm(`Czy na pewno chcesz usunąć plik "${doc.filename}"? Zostanie on również usunięty u znajomych, którym został udostępniony.`)) {
+      return;
+    }
+    
+    setMessage('🗑️ Usuwanie pliku...');
+    const result = await fileApi.deleteFile(docId, username);
+    
+    if (result.success) {
+      setMessage('✅ Plik usunięty pomyślnie');
+      fetchData(); // Odśwież listę
+    } else {
+      setMessage(`❌ ${result.message}`);
     }
     
     setTimeout(() => setMessage(''), 3000);
@@ -305,7 +328,7 @@ export const FilePage = () => {
                         .map((doc) => (
                           <div
                             key={doc.id}
-                            className="flex items-center justify-between py-2 px-3 rounded transition"
+                            className="flex items-center justify-between py-2 px-3 rounded transition group"
                           >
                             <button
                               onClick={() => handleDownloadDocument(doc.id)}
@@ -319,16 +342,28 @@ export const FilePage = () => {
                                 </span>
                               </div>
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleShareDocument(doc.id);
-                              }}
-                              className="p-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 rounded-full transition ml-2"
-                              title="Udostępnij"
-                            >
-                              <ShareIcon className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShareDocument(doc.id);
+                                }}
+                                className="p-2 bg-slate-200 dark:bg-slate-600 hover:bg-slate-300 dark:hover:bg-slate-500 rounded-full transition"
+                                title="Udostępnij"
+                              >
+                                <ShareIcon className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteFile(doc.id);
+                                }}
+                                className="p-2 bg-red-500 hover:bg-red-600 rounded-full transition opacity-0 group-hover:opacity-100"
+                                title="Usuń"
+                              >
+                                <TrashIcon className="w-4 h-4 text-white" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                     </div>
