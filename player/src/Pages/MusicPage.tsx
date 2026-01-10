@@ -16,6 +16,7 @@ import { useMusicContext, type MusicFolder, type Song } from "../Music/MusicCont
 import musicApi from "../api/musicApi";
 import { useAuthContext } from "../Auth/AuthContext";
 import { useToast } from "../Toast/ToastContext";
+import ConfirmModal from '../ui/ConfirmModal';
 
 
 export const MusicPage = () => {
@@ -42,6 +43,9 @@ export const MusicPage = () => {
   const [showAddSongModal, setShowAddSongModal] = useState(false);
   const [showAddPlaylistaModal, setShowAddPlaylistaModal] = useState(false);
   const [subfolders, setSubfolders] = useState<MusicFolder[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'song' | 'folder'; id: number } | null>(null);
+  const [deleteMessage, setDeleteMessage] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -70,11 +74,6 @@ export const MusicPage = () => {
           }
         }
 
-        // Add friends folder and other non-category/non-playlist folders
-        const otherFolders = [
-          { id: 4, name: 'Znajomi', icon: '👥', type: 'friends' }
-        ];
-        newFolders = [...newFolders, ...otherFolders];
 
         // Replace entire folders list instead of merging
         setFolders(newFolders);
@@ -134,30 +133,48 @@ export const MusicPage = () => {
   };
 
   const handleDeleteSong = (songId: number) => {
-    if (!confirm('Czy na pewno chcesz usunąć ten utwór?')) return;
+    if (!selectedFolder) return;
 
-    // If this is a server-backed playlist, remove from backend first
-    if (selectedFolder && selectedFolder.type === 'playlist' && auth && auth.isLoggedIn) {
-      (async () => {
-        try {
-          const resp = await musicApi.removeSongFromPlaylist(selectedFolder.id, songId);
-          if (resp && resp.status === 200) {
-            setSongs(prev => prev.filter(s => s.id !== songId));
-            showToast('Utwór usunięty z playlisty', 'success');
-          } else {
-            showToast('Nie udało się usunąć utworu na serwerze', 'error');
-          }
-        } catch (e) {
-          console.error('removeSongFromPlaylist', e);
-          showToast('Błąd podczas usuwania utworu', 'error');
-        }
-      })();
+    // Check if category is protected (nauka, lokalizacja, gatunki, warszawa, wrocław, fizyka, matematyka, pop, rap)
+    const protectedCategories = ['nauka', 'lokalizacja', 'gatunki', 'warszawa', 'wrocław', 'wroclaw', 'fizyka', 'matematyka', 'pop', 'rap'];
+    const folderNameLower = selectedFolder.name.toLowerCase();
+    if (protectedCategories.some(cat => folderNameLower.includes(cat))) {
+      showToast('Nie możesz usunąć utworów z tej kategorii', 'error');
       return;
     }
 
-    // local removal
-    setSongs(prev => prev.filter(s => s.id !== songId));
-    showToast('Utwór usunięty', 'success');
+    setDeleteTarget({ type: 'song', id: songId });
+    setDeleteMessage('Czy na pewno chcesz usunąć ten utwór?');
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDeleteSong = async () => {
+    if (!deleteTarget || deleteTarget.type !== 'song' || !selectedFolder) return;
+
+    const songId = deleteTarget.id;
+
+    // If this is a server-backed playlist, remove from backend first
+    if (selectedFolder.type === 'playlist' && auth && auth.isLoggedIn) {
+      try {
+        const resp = await musicApi.removeSongFromPlaylist(selectedFolder.id, songId);
+        if (resp && resp.status === 200) {
+          setSongs(prev => prev.filter(s => s.id !== songId));
+          showToast('Utwór usunięty z playlisty', 'success');
+        } else {
+          showToast('Nie udało się usunąć utworu na serwerze', 'error');
+        }
+      } catch (e) {
+        console.error('removeSongFromPlaylist', e);
+        showToast('Błąd podczas usuwania utworu', 'error');
+      }
+    } else {
+      // local removal
+      setSongs(prev => prev.filter(s => s.id !== songId));
+      showToast('Utwór usunięty', 'success');
+    }
+
+    setShowDeleteConfirm(false);
+    setDeleteTarget(null);
   };
 
   const handleDeleteFolder = async (folderId: number) => {
@@ -168,7 +185,18 @@ export const MusicPage = () => {
     const confirmMsg = folderSongs.length > 0
       ? `Folder zawiera ${folderSongs.length} utworów. Czy na pewno chcesz usunąć folder i wszystkie utwory?`
       : 'Czy na pewno chcesz usunąć ten folder?';
-    if (!confirm(confirmMsg)) return;
+
+    setDeleteTarget({ type: 'folder', id: folderId });
+    setDeleteMessage(confirmMsg);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDeleteFolder = async () => {
+    if (!deleteTarget || deleteTarget.type !== 'folder') return;
+
+    const folderId = deleteTarget.id;
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
 
     try {
       if (folder.type === 'playlist' && auth?.isLoggedIn) {
@@ -176,6 +204,8 @@ export const MusicPage = () => {
         const resp = await musicApi.deletePlaylist(folderId);
         if (resp?.status !== 200) {
             showToast('Nie udało się usunąć playlisty na serwerze', 'error');
+          setShowDeleteConfirm(false);
+          setDeleteTarget(null);
           return;
         }
         
@@ -186,18 +216,22 @@ export const MusicPage = () => {
           // Keep categories and friends folder, replace playlists
           return prev.filter(f => f.type === 'category' || f.type === 'friends').concat(mapped);
         });
+        showToast('Playlist usunięta', 'success');
       } else {
         // Local folder deletion
         setFolders(prev => prev.filter(f => f.id !== folderId));
+        showToast('Folder usunięty', 'success');
       }
 
       setSongs(prev => prev.filter(s => s.folderId !== folderId));
-      showToast('Folder i jego utwory usunięte', 'success');
       setSelectedFolder(null);
     } catch (e) {
       console.error('deleteFolder', e);
       showToast('Błąd podczas usuwania folderu', 'error');
     }
+
+    setShowDeleteConfirm(false);
+    setDeleteTarget(null);
   };
 
   const currentFolderName = selectedFolder?.name || '';
@@ -283,31 +317,40 @@ export const MusicPage = () => {
           {/* If selected is a subcategory or local playlist, show songs */}
           {(selectedFolder.type === 'subcategory' || selectedFolder.type === 'local' || selectedFolder.type === 'playlist') && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {currentFolderSongs.map((song) => (
-              <div key={song.id} className="login-box p-4 rounded shadow relative group">
-                <button
-                  onClick={() => handleDeleteSong(song.id)}
-                  className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 z-10"
-                  title="Usuń utwór"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+              {currentFolderSongs.map((song) => {
+                // Check if delete button should be visible
+                const protectedCategories = ['nauka', 'lokalizacja', 'gatunki', 'warszawa', 'wrocław', 'wroclaw', 'fizyka', 'matematyka', 'pop', 'rap'];
+                const folderNameLower = selectedFolder.name.toLowerCase();
+                const isProtected = protectedCategories.some(cat => folderNameLower.includes(cat));
+                
+                return (
+                <div key={song.id} className="login-box p-4 rounded shadow relative group">
+                  {!isProtected && (
+                    <button
+                      onClick={() => handleDeleteSong(song.id)}
+                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 z-10"
+                      title="Usuń utwór"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  )}
 
-                <button onClick={() => handlePlaySong(song)} className="w-full">
-                  <div className="aspect-video  rounded-lg overflow-hidden mb-3 relative group">
-                    <img src={getYouTubeThumbnail(song.youtubeUrl)} alt={song.name} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                      {currentSong?.id === song.id && isPlaying ? (
-                        <PauseIcon className="w-12 h-12 text-white" />
-                      ) : (
-                        <PlayIcon className="w-12 h-12 text-white" />
-                      )}
+                  <button onClick={() => handlePlaySong(song)} className="w-full">
+                    <div className="aspect-video  rounded-lg overflow-hidden mb-3 relative group">
+                      <img src={getYouTubeThumbnail(song.youtubeUrl)} alt={song.name} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        {currentSong?.id === song.id && isPlaying ? (
+                          <PauseIcon className="w-12 h-12 text-white" />
+                        ) : (
+                          <PlayIcon className="w-12 h-12 text-white" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 text-left">{song.name}</h3>
-                </button>
-              </div>
-            ))}
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2 text-left">{song.name}</h3>
+                  </button>
+                </div>
+                );
+              })}
 
               {/* Dodaj utwór - tylko gdy kontekst na to pozwala (własne playlisty/local) */}
               {canAddSongs(selectedFolder) && (
@@ -496,15 +539,19 @@ export const MusicPage = () => {
                         const newFolder: MusicFolder = { id: resp.data.id, name: data.playlistName, icon: '🎵', type: 'playlist' };
                         setFolders(prev => [...prev, newFolder]);
                         setSelectedFolder(newFolder);
-                        showToast('Dodano playlistę', 'success');
+                        showToast(`Dodano playlistę ${data.playlistName}`, 'success');
+                      } else {
+                        showToast('Błąd przy dodawaniu playlisty', 'error');
                       }
                     } else {
                       const newFolder: MusicFolder = { id: Date.now(), name: data.playlistName, icon: '🎵', type: 'local' };
                       setFolders(prev => [...prev, newFolder]);
                       setSelectedFolder(newFolder);
+                      showToast('Playlist utworzona lokalnie', 'success');
                     }
                   } catch (e) {
                     console.error('create playlist', e);
+                    showToast('Błąd podczas tworzenia playlisty', 'error');
                   }
                   setShowAddPlaylistaModal(false);
                   resetPlaylist();
@@ -536,6 +583,20 @@ export const MusicPage = () => {
             </div>
           </div>
         )}
+
+        {/* Confirm Modal for deletions */}
+        <ConfirmModal
+          open={showDeleteConfirm}
+          title="Potwierdzenie usunięcia"
+          message={deleteMessage}
+          confirmLabel="Usuń"
+          cancelLabel="Anuluj"
+          onConfirm={deleteTarget?.type === 'song' ? handleConfirmDeleteSong : handleConfirmDeleteFolder}
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setDeleteTarget(null);
+          }}
+        />
       </div>
   );
 };

@@ -6,6 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FriendFormData, validationSchema } from "../types_friends";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuthContext } from '../Auth/AuthContext';
+import { useToast } from '../Toast/ToastContext';
 
 type Friend = {
   id: string; // login
@@ -34,6 +35,7 @@ export const FriendsPage = () => {
       resolver: zodResolver(validationSchema),
     });
     const auth = useAuthContext();
+    const { showToast } = useToast();
     const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
   useEffect(() => {
     if (!auth.username) return;
@@ -118,14 +120,19 @@ export const FriendsPage = () => {
         body: JSON.stringify({ from_user: auth.username, to_user: toUser }),
       });
       const json = await res.json();
-      const msg = json.message || (res.ok ? '✅ Wysłano zaproszenie' : 'Wystąpił błąd');
-      setMessage(msg);
-      setMessageType(res.ok ? 'success' : 'error');
+      
+      if (res.ok) {
+        showToast('Wysłano zaproszenie', 'success');
+      } else {
+        showToast(json.message || 'Nie udało się wysłać zaproszenia', 'error');
+      }
+      
       if (messageTimeout.current) window.clearTimeout(messageTimeout.current);
       messageTimeout.current = window.setTimeout(() => setMessage(''), 3000) as unknown as number;
       await fetchRequests();
     } catch (err) {
       console.error('sendFriendRequest error', err);
+      showToast('Błąd podczas wysyłania zaproszenia', 'error');
     }
   };
 

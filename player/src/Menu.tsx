@@ -1,5 +1,5 @@
 // Menu.js
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WaNavLink } from './onkrzyczy';
 import { routes } from "./routes";
 import { UserMenu } from "./userdb/UserMenu";
@@ -7,12 +7,51 @@ import { useAuthContext } from "./Auth/AuthContext";
 
 export const Menu = () => {
   const { isLoggedIn, username } = useAuthContext();
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [userImage, setUserImage] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedImage(e.target.files[0]);
-      // Tutaj możesz dodać dalsze przetwarzanie, np. upload
+  // Fetch user image from database on component mount
+  useEffect(() => {
+    if (isLoggedIn && username) {
+      fetchUserImage();
+    }
+  }, [isLoggedIn, username]);
+
+  const fetchUserImage = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/user/${username}/image`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const imageUrl = URL.createObjectURL(blob);
+        setUserImage(imageUrl);
+      }
+    } catch (e) {
+      console.error('Failed to fetch user image', e);
+    }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !username) return;
+
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('username', username);
+
+    setIsUploadingImage(true);
+    try {
+      const res = await fetch(`http://localhost:5000/user/${username}/image`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        // Refresh the image
+        await fetchUserImage();
+      }
+    } catch (e) {
+      console.error('Failed to upload user image', e);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -20,33 +59,31 @@ export const Menu = () => {
     <aside className="w-60 p-6 flex flex-col flex-shrink-0 left-panel">
       {/* Avatar */}
       <div className="flex flex-col items-center mb-6 relative group">
-  {/* Label jako przycisk */}
+  {/* User Image */}
   <label
-    htmlFor="avatar-file"
-    className="w-16 h-16 rounded-full bg-gray-600 mb-2 relative overflow-hidden cursor-pointer"
+    className="w-16 h-16 rounded-full bg-gray-600 mb-2 relative overflow-hidden cursor-pointer flex items-center justify-center group hover:opacity-80 transition"
   >
-    {selectedImage ? (
+    {userImage ? (
       <img
-        src={URL.createObjectURL(selectedImage)}
+        src={userImage}
         alt="Avatar"
         className="w-full h-full object-cover"
       />
-    ) : null}
-
-    {/* Overlay po najechaniu */}
-    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-gray-100 text-sm font-medium">
-      Ustaw zdjęcie
+    ) : (
+      <div className="text-3xl">👤</div>
+    )}
+    {/* Overlay */}
+    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-black text-xs font-medium text-center p-1">
+      {isUploadingImage ? 'Przesyłanie...' : 'Zmień zdjęcie'}
     </div>
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleImageChange}
+      disabled={isUploadingImage}
+      className="hidden"
+    />
   </label>
-
-  {/* Ukryty input pliku */}
-  <input
-    id="avatar-file"
-    type="file"
-    accept="image/*"
-    onChange={handleImageChange}
-    className="hidden"
-  />
 
   {username && <div className="font-semibold text-white">{username}</div>}
 </div>
