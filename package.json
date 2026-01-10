@@ -2,6 +2,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "pg": "^8.14.0",
-    "pg-hstore": "^2.3.4"
+    "pg-hstore": "^2.3.4",
+    "react-microsoft-clarity": "^2.0.0"
   }
 }

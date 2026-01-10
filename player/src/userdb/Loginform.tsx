@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { WaNavLink } from "../onkrzyczy";
 import { routes } from "../routes";
 import { useAuthContext } from "../Auth/AuthContext";
+import { useToast } from "../Toast/ToastContext";
 import logo from "../assets/logo.svg"
 
 
@@ -15,18 +16,16 @@ import logo from "../assets/logo.svg"
 export const LoginForm = () => {
   const classinput =  "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500";
    const classlabel = "block mb-2 text-sm font-medium text-white"
-    const [message, setMessage] = useState('');
     const { logIn } = useAuthContext();
+    const { showToast } = useToast();
     const navigate = useNavigate();
-    //const { isLoggedIn,logIn } = useAuthContext();
-  const [showPassword, setShowPassword] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
   const {register, handleSubmit, formState:{errors }} = useForm<LoginFormData>({
     resolver: zodResolver(validationSchema)
 })
 
 const handleLoginForm: SubmitHandler<LoginFormData> = async (data) => {
-  console.log(import.meta.env);
-  console.log(`http://${import.meta.env.VITE_BACKEND_URL}/user/login`)
+  try {
     const response = await fetch(`http://localhost:5000/user/login`,{
         method: 'POST',
         headers: {
@@ -37,17 +36,21 @@ const handleLoginForm: SubmitHandler<LoginFormData> = async (data) => {
 
       const dataa = await response.json();
       if (response.ok) {
-        const token = dataa.token;//dataa.accessToken.AccessToken;
+        const token = dataa.token;
         localStorage.setItem('jwtToken', token);
-        logIn()
+        logIn();
+        showToast('Pomyślnie zalogowano!', 'success', 2000);
         // Przekierowanie na stronę główną po pomyślnym logowaniu
         setTimeout(() => {
           navigate(routes.HOME.path);
         }, 500);
-        setMessage(`Success: ${dataa.message}`);
       } else {
-        setMessage(`Error: ${dataa.message}`);
+        showToast(`Błąd: ${dataa.message}`, 'error', 3000);
       }
+    } catch (error) {
+      showToast('Błąd połączenia z serwerem', 'error', 3000);
+      console.error('Login error:', error);
+    }
     };
 
 
@@ -94,7 +97,6 @@ const handleLoginForm: SubmitHandler<LoginFormData> = async (data) => {
              </p>
 
         </form>
-        {message && <p className="text-green-200">{message}</p>}
         </div>
         </div>
         </div>

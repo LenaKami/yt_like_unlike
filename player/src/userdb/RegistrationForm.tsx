@@ -5,6 +5,7 @@ import { type RegistrationFormData, validationSchema } from "./types_register";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { WaNavLink } from "../onkrzyczy";
 import { useNavigate } from 'react-router-dom';
+import { useToast } from "../Toast/ToastContext";
 import { routes } from "../routes";
 import logo from "../assets/logo.svg"
 
@@ -14,7 +15,7 @@ export const RegistrationForm = () => {
   const classlabel = "block mb-2 text-sm font-medium text-white";
 
   const navigate = useNavigate();
-  const [message, setMessage] = useState("");
+  const { showToast } = useToast();
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<RegistrationFormData>({
@@ -27,26 +28,32 @@ export const RegistrationForm = () => {
   };
 
   const handleRegistrationForm: SubmitHandler<RegistrationFormData> = async (data) => {
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    formData.append("login", data.login);
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-    console.log(formData.get('login'))
-    if (selectedImage) {
-      formData.append("image", selectedImage);
-    }
-    console.log(formData.get('image'))
-    const response = await fetch("http://localhost:5000/user/register", {
-      method: "POST",
-      body: formData 
-    });
+      formData.append("login", data.login);
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      if (selectedImage) {
+        formData.append("image", selectedImage);
+      }
+      const response = await fetch("http://localhost:5000/user/register", {
+        method: "POST",
+        body: formData 
+      });
 
-    const dataa = await response.json();
-    if (response.ok) {
-      setMessage(`Success: ${dataa.message}`);
-    } else {
-      setMessage(`Error: ${dataa.message}`);
+      const dataa = await response.json();
+      if (response.ok) {
+        showToast('Pomyślnie zarejestrowano! Przekierowywanie...', 'success', 2000);
+        setTimeout(() => {
+          navigate(routes.LOGINFORM.path);
+        }, 1500);
+      } else {
+        showToast(`Błąd: ${dataa.message}`, 'error', 3000);
+      }
+    } catch (error) {
+      showToast('Błąd połączenia z serwerem', 'error', 3000);
+      console.error('Registration error:', error);
     }
   };
 
@@ -104,7 +111,6 @@ export const RegistrationForm = () => {
                   Masz już konto? <span className="menulog  cursor-pointer" onClick={() => navigate(routes.LOGINFORM.path)}>Zaloguj się</span>
                 </p>
               </form>
-              {message && <p className="text-green-200">{message}</p>}
             </div>
           </div>
         </div>

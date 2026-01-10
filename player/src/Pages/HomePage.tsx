@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Text } from '../ui/Text/Text';
 import { useAuthContext } from '../Auth/AuthContext';
+import { useToast } from '../Toast/ToastContext';
 import musicApi from '../api/musicApi';
 
 type PlaylistRef = {
@@ -88,7 +89,9 @@ export const HomePage = () => {
     avatar?: string;
     active?: boolean;
   }[]>([]);
+  const [pendingDeletions, setPendingDeletions] = useState<Record<string, number>>({});
   const auth = useAuthContext();
+  const { showToast } = useToast();
   const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
   useEffect(() => {
@@ -306,9 +309,47 @@ export const HomePage = () => {
   }, [tasks]);
 
   const toggleActive = (id: string) => {
-    setTasks((s) =>
-      s.map((t) => (t.id === id ? { ...t, active: !t.active } : t))
-    );
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const isNowActive = !task.active;
+    if (!isNowActive) {
+      // User marked as completed -> schedule deletion after delay
+      setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: false } : t)));
+      // schedule delete in 5s
+      const timeoutId = window.setTimeout(async () => {
+        try {
+          if (!isNaN(Number(id))) {
+            await fetch(`${API_BASE}/study/plan/lesson/delete/${id}`);
+            showToast('Zadanie zostało usunięte', 'success');
+          }
+        } catch (e) {
+          console.error('Error deleting lesson', e);
+          showToast('Błąd podczas usuwania zadania', 'error');
+        }
+        // remove pending marker
+        setPendingDeletions((p) => {
+          const copy = { ...p };
+          delete copy[id];
+          return copy;
+        });
+        // remove from UI
+        setTasks((s) => s.filter((t) => t.id !== id));
+      }, 5000);
+      setPendingDeletions((p) => ({ ...p, [id]: timeoutId }));
+      showToast('Zadanie oznaczone jako wykonane. Cofnij w ciągu 5s', 'info');
+      return;
+    }
+    // User re-activated (unlikely via checkbox) -> cancel pending delete
+    if (pendingDeletions[id]) {
+      clearTimeout(pendingDeletions[id]);
+      setPendingDeletions((p) => {
+        const copy = { ...p };
+        delete copy[id];
+        return copy;
+      });
+      showToast('Przywrócono zadanie', 'info');
+    }
+    setTasks((s) => s.map((t) => (t.id === id ? { ...t, active: true } : t)));
   };
 
   const upcoming = tasks.slice(0, 5);

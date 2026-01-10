@@ -11,9 +11,9 @@ var playerRouter = require("./routes/PlayerRoute.js");
 var fileRouter = require("./routes/FileRouter.js");
 var friendRouter = require("./routes/FriendRouter.js");
 var friendRequestsRouter = require("./routes/FriendRequestsRouter.js");
-var studyRouter = require('./routes/StudyPlanRoute');
-var musicRouter = require('./routes/MusicRoute');
-var userRouter = require('./routes/UserRoute');
+var studyRouter = require("./routes/StudyPlanRoute");
+var musicRouter = require("./routes/MusicRoute");
+var userRouter = require("./routes/UserRoute");
 const multer = require("multer");
 const fs = require("fs");
 
@@ -64,54 +64,9 @@ app.use("/player", playerRouter);
 app.use("/file", fileRouter);
 app.use("/friend", friendRouter);
 app.use("/friend/requests", friendRequestsRouter);
-app.use('/study', studyRouter);
-app.use('/music', musicRouter);
-app.use('/user', userRouter);
-
-// ============================
-// 📌 Rejestracja użytkownika
-// ============================
-app.post("/user/register", upload.any(), async function (req, res) {
-  try {
-    const { login, email, password } = req.body;
-    const role = false;
-    const fileName =
-      req.files && req.files[0] ? req.files[0].filename : "default.png";
-
-    // Sprawdź, czy użytkownik już istnieje
-    const [existingUser] = await db
-      .promise()
-      .query("SELECT * FROM Users WHERE email = ? OR login = ?", [
-        email,
-        login,
-      ]);
-    if (existingUser.length > 0) {
-      return res.status(400).json({
-        message: "Użytkownik o takim loginie lub emailu już istnieje",
-      });
-    }
-
-    // Hashowanie hasła
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Zapis do bazy
-    const insertQuery = `
-      INSERT INTO Users (login, email, password, role, profile_picture)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    await db
-      .promise()
-      .query(insertQuery, [login, email, hashedPassword, role, fileName]);
-
-    res.status(200).json({
-      message: "Rejestracja zakończona sukcesem",
-      user: { login, email, role, profile_picture: fileName },
-    });
-  } catch (error) {
-    console.error("❌ Błąd przy rejestracji:", error);
-    res.status(500).json({ message: "Błąd serwera", error: error.message });
-  }
-});
+app.use("/study", studyRouter);
+app.use("/music", musicRouter);
+app.use("/user", userRouter);
 
 // ============================
 // 📌 Logowanie użytkownika
@@ -144,7 +99,7 @@ app.post("/user/login", async function (req, res) {
         role: user.role,
         image: user.profile_picture,
       },
-      process.env.TOKEN_SECRET || 'dev-secret-key-for-local-development',
+      process.env.TOKEN_SECRET || "dev-secret-key-for-local-development",
       { expiresIn: "1h" }
     );
 
