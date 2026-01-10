@@ -327,7 +327,10 @@ export const MusicPage = () => {
                 <div key={song.id} className="login-box p-4 rounded shadow relative group">
                   {!isProtected && (
                     <button
-                      onClick={() => handleDeleteSong(song.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSong(song.id);
+                      }}
                       className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 z-10"
                       title="Usuń utwór"
                     >
@@ -422,6 +425,20 @@ export const MusicPage = () => {
               </div>
             </div>
           )}
+
+        {/* Confirm Modal for deletions */}
+        <ConfirmModal
+          open={showDeleteConfirm}
+          title="Potwierdzenie usunięcia"
+          message={deleteMessage}
+          confirmLabel="Usuń"
+          cancelLabel="Anuluj"
+          onConfirm={deleteTarget?.type === 'song' ? handleConfirmDeleteSong : handleConfirmDeleteFolder}
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setDeleteTarget(null);
+          }}
+        />
       </div>
     );
   }
@@ -450,7 +467,7 @@ export const MusicPage = () => {
                 return 0; // reszta pozostaje w tej samej kolejności
               })
               .map((folder) => (
-                <div key={folder.id} className="relative group">
+                <div key={`${folder.type}-${folder.id}`} className="relative group">
                   <button
                     onClick={async () => {
                       if (folder.type === 'category') {
