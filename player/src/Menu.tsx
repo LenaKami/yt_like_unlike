@@ -103,10 +103,9 @@ export const Menu = () => {
             <div className='login-box-size'><WaNavLink to={routes.LOGINFORM.path}>Logowanie</WaNavLink></div>
           </>
         )}
+        {/* Menu użytkownika jeśli zalogowany */}
+        {isLoggedIn && <UserMenu />}
       </nav>
-
-      {/* Menu użytkownika jeśli zalogowany */}
-      {isLoggedIn && <UserMenu />}
     </aside>
   );
 };

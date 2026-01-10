@@ -15,9 +15,7 @@ export const UserMenu = () => {
     return (
         <>
             {isLoggedIn ? (
-                <div className="flex flex-col space-y-3 flex-grow items-center">
-                    <div className='login-box-size'><WaNavLink to={routes.REGISTRATIONFORM.path}>Wyloguj</WaNavLink></div>
-                </div>
+                <div className='login-box-size'><WaNavLink to={routes.REGISTRATIONFORM.path}>Wyloguj</WaNavLink></div>
             ) : (<>
             </>
             )}
