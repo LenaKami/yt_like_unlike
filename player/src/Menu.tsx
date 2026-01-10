@@ -6,7 +6,7 @@ import { UserMenu } from "./userdb/UserMenu";
 import { useAuthContext } from "./Auth/AuthContext";
 
 export const Menu = () => {
-  const { isLoggedIn, username } = useAuthContext();
+  const { isLoggedIn, username, image: authImage } = useAuthContext();
   const [userImage, setUserImage] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -24,9 +24,13 @@ export const Menu = () => {
         const blob = await res.blob();
         const imageUrl = URL.createObjectURL(blob);
         setUserImage(imageUrl);
+      } else {
+        // If no custom image, use default or auth image
+        setUserImage(null);
       }
     } catch (e) {
       console.error('Failed to fetch user image', e);
+      setUserImage(null);
     }
   };
 
@@ -47,9 +51,14 @@ export const Menu = () => {
       if (res.ok) {
         // Refresh the image
         await fetchUserImage();
+        // Show success message
+        alert('Zdjęcie profilowe zostało zaktualizowane!');
+      } else {
+        alert('Błąd podczas aktualizacji zdjęcia');
       }
     } catch (e) {
       console.error('Failed to upload user image', e);
+      alert('Błąd podczas przesyłania zdjęcia');
     } finally {
       setIsUploadingImage(false);
     }

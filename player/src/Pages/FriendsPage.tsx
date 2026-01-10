@@ -68,7 +68,20 @@ export const FriendsPage = () => {
       if (token) headers.Authorization = `Bearer ${token}`;
       const res = await fetch(`${API_BASE}/friend/${auth.username}`, { headers });
       const json = await res.json();
-      const list: Friend[] = (json.data || []).map((login:string) => ({ id: login, name: login, avatar: undefined, active: false }));
+      const list: Friend[] = await Promise.all((json.data || []).map(async (login:string) => {
+        // Try to fetch user's profile picture
+        let avatarUrl = undefined;
+        try {
+          const imgRes = await fetch(`${API_BASE}/user/${login}/image`);
+          if (imgRes.ok) {
+            const blob = await imgRes.blob();
+            avatarUrl = URL.createObjectURL(blob);
+          }
+        } catch (e) {
+          // No avatar, use default
+        }
+        return { id: login, name: login, avatar: avatarUrl, active: false };
+      }));
       setFriends(list);
     } catch (err) {
       console.error('fetchFriends error', err);

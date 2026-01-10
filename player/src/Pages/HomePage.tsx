@@ -165,12 +165,28 @@ export const HomePage = () => {
       const res = await fetch(`${API_BASE}/friend/online/${auth.username}`, { headers });
       const json = await res.json();
       // json.data is array of { login, profile_picture, first_name, last_name }
-      const list: Friend[] = (json.data || []).map((u: any) => ({
-        id: u.login,
-        firstName: u.first_name || u.login,
-        lastName: u.last_name || '',
-        avatar: u.profile_picture,
-        active: true,
+      const list: Friend[] = await Promise.all((json.data || []).map(async (u: any) => {
+        // Try to fetch user's profile picture
+        let avatarUrl = u.profile_picture;
+        if (u.profile_picture && u.profile_picture !== 'default.png') {
+          try {
+            const imgRes = await fetch(`${API_BASE}/user/${u.login}/image`);
+            if (imgRes.ok) {
+              const blob = await imgRes.blob();
+              avatarUrl = URL.createObjectURL(blob);
+            }
+          } catch (e) {
+            // Keep the default
+          }
+        }
+        
+        return {
+          id: u.login,
+          firstName: u.first_name || u.login,
+          lastName: u.last_name || '',
+          avatar: avatarUrl !== 'default.png' ? avatarUrl : undefined,
+          active: true,
+        };
       }));
       setFriends(list);
     } catch (err) {

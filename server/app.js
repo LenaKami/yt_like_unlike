@@ -13,6 +13,7 @@ var friendRouter = require("./routes/FriendRouter.js");
 var friendRequestsRouter = require("./routes/FriendRequestsRouter.js");
 var studyRouter = require('./routes/StudyPlanRoute');
 var musicRouter = require('./routes/MusicRoute');
+var userRouter = require('./routes/UserRoute');
 const multer = require("multer");
 const fs = require("fs");
 
@@ -65,6 +66,7 @@ app.use("/friend", friendRouter);
 app.use("/friend/requests", friendRequestsRouter);
 app.use('/study', studyRouter);
 app.use('/music', musicRouter);
+app.use('/user', userRouter);
 
 // ============================
 // 📌 Rejestracja użytkownika

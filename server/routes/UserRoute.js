@@ -17,6 +17,12 @@ router.get("/ping", authenticate, (req, res) => {
   res.json({ status: "ok" });
 });
 
+// Get user's profile image
+router.get("/:username/image", UserController.getUserImage);
+
+// Upload user's profile image
+router.post("/:username/image", UserController.uploadUserImage);
+
 //router.post('/login', UserController.login)
 
 module.exports = router;

@@ -1,5 +1,5 @@
 const mysql = require("mysql2");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const fs = require("fs");
@@ -65,6 +65,92 @@ db.promise()
 const upload = multer({ 
     dest: 'files/', // Location where files will be saved
   });
+
+// Get user's profile image
+module.exports.getUserImage = async (req, res) => {
+  const { username } = req.params;
+  
+  try {
+    const [rows] = await db.promise().query("SELECT profile_picture FROM Users WHERE login = ?", [username]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const fileName = rows[0].profile_picture;
+    
+    // If using default image or file doesn't exist, return 404
+    if (fileName === 'default.png') {
+      return res.status(404).json({ message: "No custom profile picture" });
+    }
+    
+    const filePath = path.join(__dirname, '../files', fileName);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "Image file not found" });
+    }
+    
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error("Error fetching user image:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Upload user's profile image
+module.exports.uploadUserImage = async (req, res) => {
+  const uploadSingle = multer({ dest: 'files/' }).single('image');
+  
+  uploadSingle(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: "Upload error", error: err.message });
+    }
+    
+    const { username } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    
+    const fileName = req.file.filename;
+    
+    try {
+      // Get old profile picture to delete it
+      const [rows] = await db.promise().query("SELECT profile_picture FROM Users WHERE login = ?", [username]);
+      
+      if (rows.length === 0) {
+        // Clean up uploaded file
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const oldFileName = rows[0].profile_picture;
+      
+      // Update database with new file name
+      await db.promise().query("UPDATE Users SET profile_picture = ? WHERE login = ?", [fileName, username]);
+      
+      // Delete old file if it exists and is not default
+      if (oldFileName !== 'default.png') {
+        const oldFilePath = path.join(__dirname, '../files', oldFileName);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      }
+      
+      res.status(200).json({ 
+        message: "Profile picture updated successfully",
+        filename: fileName 
+      });
+    } catch (error) {
+      // Clean up uploaded file on error
+      if (req.file && req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
+      console.error("Error updating profile picture:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  });
+};
 
 module.exports.register = (req, res) => {
   const upload = multer({ 
