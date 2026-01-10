@@ -42,6 +42,17 @@ db.promise()
   .then(() => console.log("✅ Tabela Lessons jest gotowa!"))
   .catch((err) => console.error("❌ Błąd przy tworzeniu tabeli Lessons:", err.message));
 
+// Add playlist_type and playlist_id columns if they don't exist
+db.promise()
+  .query('ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS playlist_type VARCHAR(20)')
+  .then(() => console.log('✅ Kolumna playlist_type sprawdzona/dodana'))
+  .catch(() => {});
+
+db.promise()
+  .query('ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS playlist_id INT')
+  .then(() => console.log('✅ Kolumna playlist_id sprawdzona/dodana'))
+  .catch(() => {});
+
 module.exports = {
   // Create a new study plan for a user
   addPlan: async (req, res) => {
