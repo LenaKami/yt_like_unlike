@@ -17,11 +17,10 @@ export const Layout = () => {
     <>
       {/* ZMIANA 1: Zamiast h-[85vh] dajemy min-h-[85vh] i padding (py-12), 
           żeby w razie dużej treści cała strona się scrollowała, a nie ucięła. */}
-      <div className="flex items-center justify-center min-h-[85vh] py-12">
+      <div className="flex items-center justify-center min-h-[85vh] py-12 px-4">
         
-        {/* ZMIANA 2: Usuwamy h-[550px]. Dajemy min-h-[550px], 
-            dzięki temu okno ma startową wielkość, ale ROŚNIE, gdy jest więcej treści. */}
-        <div className="flex w-[1000px] min-h-[400px] bg-gray-800 shadow-lg rounded-2xl overflow-hidden">
+        {/* ZMIANA 2: Responsywna szerokość - mobile: pełna szerokość z paddingiem, desktop: max 1000px */}
+        <div className="flex w-full max-w-[1000px] min-h-[400px] bg-gray-800 shadow-lg rounded-2xl overflow-hidden">
           
           {showMenu && <Menu />}
 
