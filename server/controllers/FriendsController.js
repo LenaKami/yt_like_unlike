@@ -310,6 +310,43 @@ module.exports.unshareFileWithFriends = async (req, res) => {
   }
 };
 
+// 🔹 Cofanie udostępnienia dla konkretnego użytkownika
+module.exports.unshareFileWithUser = async (req, res) => {
+  const { file_id, user_login } = req.body;
+
+  try {
+    // Sprawdź czy udostępnienie istnieje
+    const [shares] = await db
+      .promise()
+      .query("SELECT * FROM FileShares WHERE file_id = ? AND shared_with = ?", [
+        file_id,
+        user_login,
+      ]);
+
+    if (shares.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: "To udostępnienie nie istnieje",
+      });
+    }
+
+    // Usuń udostępnienie
+    await db
+      .promise()
+      .query("DELETE FROM FileShares WHERE file_id = ? AND shared_with = ?", [
+        file_id,
+        user_login,
+      ]);
+
+    res.status(200).json({
+      status: 200,
+      message: `❌ Cofnięto udostępnienie dla użytkownika ${user_login}`,
+    });
+  } catch (err) {
+    res.status(400).json({ status: 400, message: err.message });
+  }
+};
+
 // 🔹 Pobieranie plików udostępnionych danemu użytkownikowi
 module.exports.getFilesSharedWithUser = async (req, res) => {
   const { username } = req.params;

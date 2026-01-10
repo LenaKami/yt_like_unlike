@@ -97,6 +97,27 @@ export const FilePage = () => {
     }
   };
 
+  const handleUnshareUser = async (userLogin: string) => {
+    if (!documentToShare) return;
+    
+    if (!confirm(`Czy na pewno chcesz cofnąć udostępnienie dla użytkownika ${userLogin}?`)) {
+      return;
+    }
+    
+    const result = await fileApi.unshareFile(documentToShare.id, userLogin);
+    
+    if (result.success) {
+      setMessage(`✅ Cofnięto udostępnienie dla ${userLogin}`);
+      // Odśwież listę udostępnień
+      const shared = await fileApi.getFileShares(documentToShare.id);
+      setAlreadySharedWith(shared);
+    } else {
+      setMessage(`❌ ${result.message}`);
+    }
+    
+    setTimeout(() => setMessage(''), 3000);
+  };
+
   const handleConfirmShare = async () => {
     if (selectedUsers.length === 0) {
       setMessage('❌ Wybierz co najmniej jednego użytkownika');
@@ -128,7 +149,8 @@ export const FilePage = () => {
   };
 
   const handleDownloadDocument = async (docId: number) => {
-    const doc = documents.find(d => d.id === docId);
+    // Szukaj w obu listach - własne i udostępnione
+    const doc = documents.find(d => d.id === docId) || sharedDocuments.find(d => d.id === docId);
     if (!doc) return;
     
     setMessage('📥 Pobieranie dokumentu...');
@@ -589,7 +611,7 @@ export const FilePage = () => {
       {/* SHARE MODAL */}
       {showShareModal && documentToShare && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="login-box p-6 w-full max-w-md relative">
+          <div className="login-box p-6 w-full max-w-md relative max-h-[80vh] overflow-y-auto">
             <button
               onClick={() => {
                 setShowShareModal(false);
@@ -607,39 +629,61 @@ export const FilePage = () => {
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
               {documentToShare?.filename}
             </p>
+
+            {/* Lista już udostępnionych użytkowników */}
+            {alreadySharedWith.length > 0 && (
+              <div className="mb-6">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
+                  Udostępniono:
+                </p>
+                <div className="space-y-2 max-h-32 overflow-y-auto mb-4 pb-2 border-b border-slate-300 dark:border-slate-600">
+                  {alreadySharedWith.map((userLogin) => (
+                    <div
+                      key={userLogin}
+                      className="flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-700 rounded"
+                    >
+                      <span className="text-slate-900 dark:text-slate-100">{userLogin}</span>
+                      <button
+                        onClick={() => handleUnshareUser(userLogin)}
+                        className="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded"
+                      >
+                        Cofnij
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div className="space-y-3 max-h-64 overflow-y-auto mb-6">
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
-                Wybierz znajomych:
+                Wybierz znajomych do udostępnienia:
               </p>
-              {friends.length === 0 ? (
-                <p className="text-sm text-slate-600 dark:text-slate-400">Brak znajomych. Dodaj znajomych w zakładce "Znajomi".</p>
+              {friends.filter(f => !alreadySharedWith.includes(f.login)).length === 0 ? (
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {friends.length === 0 
+                    ? 'Brak znajomych. Dodaj znajomych w zakładce "Znajomi".' 
+                    : 'Wszystkim znajomym już udostępniono ten plik.'}
+                </p>
               ) : (
-                friends.map((friend) => {
-                  const isAlreadyShared = alreadySharedWith.includes(friend.login);
-                  return (
+                friends
+                  .filter(friend => !alreadySharedWith.includes(friend.login))
+                  .map((friend) => (
                     <label
                       key={friend.login}
-                      className={`flex items-center gap-3 p-3 transition ${
-                        isAlreadyShared 
-                          ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800' 
-                          : 'hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer'
-                      }`}
+                      className="flex items-center gap-3 p-3 transition hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                     >
                       <input
                         type="checkbox"
                         checked={selectedUsers.includes(friend.login)}
-                        onChange={() => !isAlreadyShared && toggleUserSelection(friend.login)}
-                        disabled={isAlreadyShared}
-                        className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onChange={() => toggleUserSelection(friend.login)}
+                        className="w-5 h-5 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                       />
                       <span className="text-slate-900 dark:text-slate-100">
                         {friend.login}
-                        {isAlreadyShared && <span className="text-xs text-slate-500 ml-2">(już udostępniono)</span>}
                       </span>
                     </label>
-                  );
-                })
+                  ))
               )}
             </div>
 
@@ -657,6 +701,7 @@ export const FilePage = () => {
               <button
                 onClick={handleConfirmShare}
                 className="flex-1 log-in py-2 font-medium"
+                disabled={selectedUsers.length === 0}
               >
                 Udostępnij ({selectedUsers.length})
               </button>

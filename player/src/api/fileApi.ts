@@ -251,4 +251,24 @@ export const fileApi = {
       return [];
     }
   },
-};
+  // Cofnij udostępnienie dla konkretnego użytkownika
+  unshareFile: async (fileId: number, userLogin: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/unshare`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_id: fileId, user_login: userLogin }),
+      });
+
+      const data = await response.json();
+      
+      if (data.status === 200) {
+        return { success: true, message: data.message };
+      } else {
+        return { success: false, message: data.message || "Błąd podczas cofania udostępnienia" };
+      }
+    } catch (error) {
+      console.error("Error unsharing file:", error);
+      return { success: false, message: "Błąd podczas cofania udostępnienia" };
+    }
+  },};
