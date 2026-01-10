@@ -4,6 +4,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { type RegistrationFormData, validationSchema } from "./types_register";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { WaNavLink } from "../onkrzyczy";
+import { useNavigate } from 'react-router-dom';
 import { routes } from "../routes";
 import logo from "../assets/logo.svg"
 
@@ -12,6 +13,7 @@ export const RegistrationForm = () => {
     "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500";
   const classlabel = "block mb-2 text-sm font-medium text-white";
 
+  const navigate = useNavigate();
   const [message, setMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -99,7 +101,7 @@ export const RegistrationForm = () => {
                   Zarejestruj
                 </button>
                 <p className="text-sm font-light text-gray-500 dark:text-white">
-                  Masz już konto? <WaNavLink to={routes.LOGINFORM.path}>Zaloguj się</WaNavLink>
+                  Masz już konto? <span className="menulog  cursor-pointer" onClick={() => navigate(routes.LOGINFORM.path)}>Zaloguj się</span>
                 </p>
               </form>
               {message && <p className="text-green-200">{message}</p>}

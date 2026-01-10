@@ -160,6 +160,20 @@ body.dark .player-wrapper {
   color: #FEC260
 }
 
+.menulog{
+  color: #E57C9A;
+  font-weight: bold;
+}
+
+.menulog.active{
+  color: inherit;
+  border-radius: 18px;
+}
+
+.menulog:hover {
+  color: #FEC260
+}
+
 .left-panel {
   background-color: #F8F8FA;
   border: 1px solid #FEC260;

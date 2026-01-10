@@ -90,8 +90,8 @@ const handleLoginForm: SubmitHandler<LoginFormData> = async (data) => {
 
         <button className="log-in" type='submit'>Zaloguj</button>
         <p className="text-sm font-light text-gray-500 dark:text-white">
-                          Nie masz konta? <WaNavLink to={routes.REGISTRATIONFORM.path}>Załóż konto</WaNavLink>
-                        </p>
+                          Nie masz konta? <span className="menulog  cursor-pointer" onClick={() => navigate(routes.REGISTRATIONFORM.path)}>Załóż konto</span>
+             </p>
 
         </form>
         {message && <p className="text-green-200">{message}</p>}
