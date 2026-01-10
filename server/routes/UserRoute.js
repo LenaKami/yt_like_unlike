@@ -1,12 +1,16 @@
 var express = require("express");
 var router = express.Router();
+const multer = require("multer");
 
 var UserController = require("../controllers/UserController");
 var ValidationController = require("../controllers/ValidationController");
 var { authenticate } = require("../controllers/authorizationController");
 
+const upload = multer({ dest: "files/" });
+
 router.post(
   "/register",
+  upload.any(),
   ValidationController.validationRegister,
   ValidationController.checkValidation,
   UserController.register

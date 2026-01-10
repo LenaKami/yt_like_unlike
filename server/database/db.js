@@ -9,7 +9,7 @@ const db = mysql.createPool({
   user: "root", //"admin",
   password: "", //"admin123",
   database: "app_db",
-  port: 3307,
+  port: 3306,
 });
 
 // const db = mysql.createPool({

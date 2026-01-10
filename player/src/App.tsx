@@ -10,7 +10,11 @@ import { ThemeSwitcher } from './Themee/ThemeSwitcher';
 import { AuthContextProvider } from "./Auth/AuthContext";
 import { MusicContextProvider } from "./Music/MusicContext";
 import { ToastContainer } from "./Toast/ToastContainer";
+// import { clarity } from 'react-microsoft-clarity';
 
+// const projectId = "uzgpbdnph1"
+// clarity.init(projectId);
+// clarity.consent();
 
 function App() {
   return(
