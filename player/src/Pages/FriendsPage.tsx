@@ -39,7 +39,12 @@ export const FriendsPage = () => {
     const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
   useEffect(() => {
     if (!auth.username) return;
-    fetchAll();
+    // load friends first, then online status and requests to avoid overwriting active flags
+    (async () => {
+      await fetchFriends();
+      await fetchOnlineFriends();
+      await fetchRequests();
+    })();
 
     const heartbeat = setInterval(() => {
       const token = localStorage.getItem('jwtToken');
@@ -58,7 +63,9 @@ export const FriendsPage = () => {
   }, [auth.username]);
 
   const fetchAll = async () => {
-    await Promise.all([fetchFriends(), fetchOnlineFriends(), fetchRequests()]);
+    await fetchFriends();
+    await fetchOnlineFriends();
+    await fetchRequests();
   };
 
   const fetchFriends = async () => {
@@ -217,7 +224,7 @@ export const FriendsPage = () => {
     const now = new Date();
     const diffMs = now.setHours(0,0,0,0) - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'Dziś';
+    if (days === 0) return 'dzisiaj';
     if (days === 1) return '1 dzień temu';
     return `${days} dni temu`;
   };

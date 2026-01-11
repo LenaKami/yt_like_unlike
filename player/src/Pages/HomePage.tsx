@@ -22,7 +22,8 @@ type SharedFile = {
   filename: string;
   category: string;
   filepath: string;
-  created_at: string;
+  created_at?: string;
+  shared_at?: string;
 };
 
 type Task = {
@@ -240,6 +241,24 @@ export const HomePage = () => {
     }
   };
 
+  const formatSharedRelative = (iso?: string) => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const cmp = new Date(d);
+      cmp.setHours(0,0,0,0);
+      const diffMs = today.getTime() - cmp.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return 'dzisiaj';
+      if (diffDays === 1) return 'wczoraj';
+      return `${diffDays} dni temu`;
+    } catch (e) {
+      return iso;
+    }
+  };
+
   const fetchUpcomingTasks = async () => {
     if (!auth.username) return;
     try {
@@ -378,7 +397,7 @@ export const HomePage = () => {
               ) : (
                 recentSharedFiles.map((f) => (
                   <div key={f.id} className="p-3 border rounded box">
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">{f.username}</span> udostępnił/a „{f.filename}” ({new Date(f.created_at).toLocaleDateString()})
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{f.username}</span> udostępnił/a „{f.filename}” ({formatSharedRelative(f.shared_at || f.created_at)})
                   </div>
                 ))
               )}
@@ -429,7 +448,7 @@ export const HomePage = () => {
             <Text>Brak znajomych online.</Text>
           ) : (
             <ul className="space-y-3">
-              {friends.slice(0, 6).map((f) => (
+                {friends.slice(0, 6).map((f) => (
                 <li key={f.id} className="p-3 border rounded flex items-center box">
                   {f.avatar ? (
                     <div className="relative mr-3">
@@ -439,12 +458,17 @@ export const HomePage = () => {
                         className="h-10 w-10 rounded-full object-cover"
                       />
                       <span
-                        className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 bg-green-400`}
+                        className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 ${f.active ? 'bg-green-400' : 'bg-gray-400'}`}
                       />
                     </div>
                   ) : (
-                    <div className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 font-medium mr-3">
-                      {getInitials(f.firstName, f.lastName)}
+                    <div className="relative mr-3">
+                      <div className="h-10 w-10 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100 font-medium">
+                        {getInitials(f.firstName, f.lastName)}
+                      </div>
+                      <span
+                        className={`absolute -right-0.5 -bottom-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-800 ${f.active ? 'bg-green-400' : 'bg-gray-400'}`}
+                      />
                     </div>
                   )}
                   <div className="flex-1">

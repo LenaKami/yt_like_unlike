@@ -7,6 +7,7 @@ import { type FileFormData, type FolderFormData, documentValidationSchema, folde
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { fileApi, type FileFromBackend, type FolderFromBackend, type User, type Friend } from '../api/fileApi';
+import { useToast } from '../Toast/ToastContext';
 
 export const FilePage = () => {
   const classinput =
@@ -14,7 +15,7 @@ export const FilePage = () => {
   const classlabel = "block mb-2 text-sm font-medium text-white";
   
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
+  const { showToast } = useToast();
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
@@ -77,7 +78,7 @@ export const FilePage = () => {
       setFriends(friendsData);
     } catch (error) {
       console.error('Error fetching data:', error);
-      setMessage('❌ Błąd podczas ładowania danych. Sprawdź czy backend działa.');
+      showToast('Błąd podczas ładowania danych. Sprawdź czy backend działa.', 'error', 4000);
     } finally {
       setLoading(false);
     }
@@ -107,37 +108,34 @@ export const FilePage = () => {
     const result = await fileApi.unshareFile(documentToShare.id, userLogin);
     
     if (result.success) {
-      setMessage(`✅ Cofnięto udostępnienie dla ${userLogin}`);
-      // Odśwież listę udostępnień
+      showToast(`Cofnięto udostępnienie dla ${userLogin}`, 'success', 3000);
+      // Odśwież listę udostępnien
       const shared = await fileApi.getFileShares(documentToShare.id);
       setAlreadySharedWith(shared);
     } else {
-      setMessage(`❌ ${result.message}`);
+      showToast(result.message || 'Błąd', 'error', 3000);
     }
-    
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleConfirmShare = async () => {
     if (selectedUsers.length === 0) {
-      setMessage('❌ Wybierz co najmniej jednego użytkownika');
+      showToast('Wybierz co najmniej jednego użytkownika', 'warning', 3000);
       return;
     }
     if (!documentToShare) return;
 
-    setMessage('📤 Udostępnianie pliku...');
+    showToast('Udostępnianie pliku...', 'info', 1500);
     const result = await fileApi.shareFile(documentToShare.id, selectedUsers);
 
     if (result.success) {
-      setMessage(`✅ Plik "${documentToShare.filename}" udostępniony`);
+      showToast(`Plik "${documentToShare.filename}" udostępniony`, 'success', 3000);
     } else {
-      setMessage(`❌ ${result.message}`);
+      showToast(result.message || 'Błąd podczas udostępniania', 'error', 3000);
     }
 
     setShowShareModal(false);
     setDocumentToShare(null);
     setSelectedUsers([]);
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const toggleUserSelection = (userLogin: string) => {
@@ -153,16 +151,14 @@ export const FilePage = () => {
     const doc = documents.find(d => d.id === docId) || sharedDocuments.find(d => d.id === docId);
     if (!doc) return;
     
-    setMessage('📥 Pobieranie dokumentu...');
+    showToast('Pobieranie dokumentu...', 'info', 1500);
     const success = await fileApi.downloadFile(doc.id, doc.filename);
-    
+
     if (success) {
-      setMessage('✅ Plik pobrany pomyślnie');
+      showToast('Plik pobrany pomyślnie', 'success', 3000);
     } else {
-      setMessage('❌ Błąd podczas pobierania pliku');
+      showToast('Błąd podczas pobierania pliku', 'error', 3000);
     }
-    
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleDeleteFile = async (docId: number) => {
@@ -175,29 +171,27 @@ export const FilePage = () => {
       return;
     }
     
-    setMessage('🗑️ Usuwanie pliku...');
+    showToast('Usuwanie pliku...', 'info', 1500);
     const result = await fileApi.deleteFile(docId, username);
-    
+
     if (result.success) {
-      setMessage('✅ Plik usunięty pomyślnie');
+      showToast('Plik usunięty pomyślnie', 'success', 3000);
       fetchData(); // Odśwież listę
     } else {
-      setMessage(`❌ ${result.message}`);
+      showToast(result.message || 'Błąd podczas usuwania pliku', 'error', 3000);
     }
-    
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleAddDocument: SubmitHandler<FileFormData> = async (data) => {
     if (!username) {
-      setMessage('❌ Błąd: Brak zalogowanego użytkownika');
+      showToast('Błąd: Brak zalogowanego użytkownika', 'error', 3000);
       return;
     }
 
     const fileObj = data.file && data.file.length > 0 ? data.file[0] : null;
 
     if (!fileObj) {
-      setMessage('❌ Błąd: Nie wybrano pliku');
+      showToast('Błąd: Nie wybrano pliku', 'error', 3000);
       return;
     }
 
@@ -206,14 +200,14 @@ export const FilePage = () => {
     // Sprawdź czy użytkownik tworzy nowy folder
     if (isCreatingNewFolder) {
       if (!newFolderName.trim()) {
-        setMessage('❌ Wprowadź nazwę nowego folderu');
+        showToast('Wprowadź nazwę nowego folderu', 'warning', 3000);
         return;
       }
       
       // Utwórz nowy folder
       const folderResult = await fileApi.addFolder(username, newFolderName.trim());
       if (!folderResult.success) {
-        setMessage(`❌ ${folderResult.message}`);
+        showToast(folderResult.message || 'Błąd podczas tworzenia folderu', 'error', 3000);
         return;
       }
       
@@ -233,37 +227,33 @@ export const FilePage = () => {
     );
 
     if (result.success) {
-      setMessage('✅ Dokument dodany pomyślnie');
+      showToast('Dokument dodany pomyślnie', 'success', 3000);
       reset();
       setShowAddModal(false);
       setIsCreatingNewFolder(false);
       setNewFolderName('');
       fetchData(); // Odśwież listę
     } else {
-      setMessage(`❌ ${result.message}`);
+      showToast(result.message || 'Błąd podczas dodawania dokumentu', 'error', 3000);
     }
-
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleAddFolder: SubmitHandler<FolderFormData> = async (data) => {
     if (!username) {
-      setMessage('❌ Błąd: Brak zalogowanego użytkownika');
+      showToast('Błąd: Brak zalogowanego użytkownika', 'error', 3000);
       return;
     }
 
     const result = await fileApi.addFolder(username, data.foldername);
 
     if (result.success) {
-      setMessage('✅ Folder dodany pomyślnie!');
+      showToast('Folder dodany pomyślnie!', 'success', 3000);
       setShowAddFolderModal(false);
       resetFolder();
       fetchData(); // Odśwież listę
     } else {
-      setMessage(`❌ ${result.message}`);
+      showToast(result.message || 'Błąd podczas dodawania folderu', 'error', 3000);
     }
-
-    setTimeout(() => setMessage(''), 3000);
   };
 
   const toggleFolder = (folderId: number) => {
@@ -450,7 +440,7 @@ export const FilePage = () => {
         </div>
       </div>
 
-      {message && <p className="mt-4 text-sm text-green-600 dark:text-green-400">{message}</p>}
+      
 
       {/* ADD MATERIAL MODAL */}
       {showAddModal && (

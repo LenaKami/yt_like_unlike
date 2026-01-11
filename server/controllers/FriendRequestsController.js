@@ -57,12 +57,10 @@ module.exports.createRequest = async (req, res) => {
   }
 
   if (from_user === to_user) {
-    return res
-      .status(400)
-      .json({
-        status: 400,
-        message: "Nie możesz wysłać zaproszenia do siebie",
-      });
+    return res.status(400).json({
+      status: 400,
+      message: "Nie możesz wysłać zaproszenia do siebie",
+    });
   }
 
   try {
@@ -99,7 +97,10 @@ module.exports.createRequest = async (req, res) => {
     if (existing.length > 0) {
       return res
         .status(400)
-        .json({ status: 400, message: "Zaproszenie już wysłane" });
+        .json({
+          status: 400,
+          message: "Zaproszenie zostało wysłane wcześniej",
+        });
     }
 
     await db
@@ -161,12 +162,10 @@ module.exports.acceptRequest = async (req, res) => {
 
     const request = rows[0];
     if (request.status !== "pending")
-      return res
-        .status(400)
-        .json({
-          status: 400,
-          message: "Zaproszenie nie jest w stanie oczekującym",
-        });
+      return res.status(400).json({
+        status: 400,
+        message: "Zaproszenie nie jest w stanie oczekującym",
+      });
 
     // Dodaj do Friends symetrycznie
     await addToFriends(request.from_user, request.to_user);
@@ -194,12 +193,10 @@ module.exports.rejectRequest = async (req, res) => {
         .json({ status: 404, message: "Zaproszenie nie znalezione" });
 
     if (rows[0].status !== "pending")
-      return res
-        .status(400)
-        .json({
-          status: 400,
-          message: "Zaproszenie nie jest w stanie oczekującym",
-        });
+      return res.status(400).json({
+        status: 400,
+        message: "Zaproszenie nie jest w stanie oczekującym",
+      });
 
     await db
       .promise()
