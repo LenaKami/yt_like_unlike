@@ -130,7 +130,7 @@ module.exports.register = async (req, res) => {
     // 🔹 Automatyczne dodanie test_user2 do znajomych
     try {
       const TEST_USER = "test_user2";
-      
+
       // Sprawdzenie czy test_user2 istnieje
       const [testUserCheck] = await db
         .promise()
@@ -152,7 +152,9 @@ module.exports.register = async (req, res) => {
             ]);
         } else {
           // Dopisanie do istniejącej listy
-          const friendsList = JSON.parse(newUserFriends[0].friends || "[]").map((f) => f.trim());
+          const friendsList = JSON.parse(newUserFriends[0].friends || "[]").map(
+            (f) => f.trim()
+          );
           if (!friendsList.includes(TEST_USER)) {
             friendsList.push(TEST_USER);
             await db
@@ -177,7 +179,9 @@ module.exports.register = async (req, res) => {
               JSON.stringify([login]),
             ]);
         } else {
-          const testFriendsList = JSON.parse(testUserFriends[0].friends || "[]").map((f) => f.trim());
+          const testFriendsList = JSON.parse(
+            testUserFriends[0].friends || "[]"
+          ).map((f) => f.trim());
           if (!testFriendsList.includes(login)) {
             testFriendsList.push(login);
             await db
@@ -189,10 +193,15 @@ module.exports.register = async (req, res) => {
           }
         }
 
-        console.log(`✅ Użytkownik ${login} dodany do znajomych z ${TEST_USER}`);
+        console.log(
+          `✅ Użytkownik ${login} dodany do znajomych z ${TEST_USER}`
+        );
       }
     } catch (friendError) {
-      console.error("⚠️ Błąd przy dodawaniu test_user2 do znajomych:", friendError.message);
+      console.error(
+        "⚠️ Błąd przy dodawaniu test_user2 do znajomych:",
+        friendError.message
+      );
       // Błąd przy dodawaniu znajomego nie zatrzymuje rejestracji
     }
 
