@@ -127,6 +127,75 @@ module.exports.register = async (req, res) => {
       .query(insertQuery, [login, email, hashedPassword, role, fileName]);
     console.log("✅ Użytkownik dodany do bazy:", result);
 
+    // 🔹 Automatyczne dodanie test_user2 do znajomych
+    try {
+      const TEST_USER = "test_user2";
+      
+      // Sprawdzenie czy test_user2 istnieje
+      const [testUserCheck] = await db
+        .promise()
+        .query("SELECT * FROM Users WHERE login = ?", [TEST_USER]);
+
+      if (testUserCheck.length > 0) {
+        // Dodaj test_user2 do znajomych nowego użytkownika
+        const [newUserFriends] = await db
+          .promise()
+          .query("SELECT friends FROM Friends WHERE username = ?", [login]);
+
+        if (newUserFriends.length === 0) {
+          // Tworzenie nowego wpisu w tabeli Friends
+          await db
+            .promise()
+            .query("INSERT INTO Friends (username, friends) VALUES (?, ?)", [
+              login,
+              JSON.stringify([TEST_USER]),
+            ]);
+        } else {
+          // Dopisanie do istniejącej listy
+          const friendsList = JSON.parse(newUserFriends[0].friends || "[]").map((f) => f.trim());
+          if (!friendsList.includes(TEST_USER)) {
+            friendsList.push(TEST_USER);
+            await db
+              .promise()
+              .query("UPDATE Friends SET friends = ? WHERE username = ?", [
+                JSON.stringify(friendsList),
+                login,
+              ]);
+          }
+        }
+
+        // Dodaj nowego użytkownika do listy znajomych test_user2
+        const [testUserFriends] = await db
+          .promise()
+          .query("SELECT friends FROM Friends WHERE username = ?", [TEST_USER]);
+
+        if (testUserFriends.length === 0) {
+          await db
+            .promise()
+            .query("INSERT INTO Friends (username, friends) VALUES (?, ?)", [
+              TEST_USER,
+              JSON.stringify([login]),
+            ]);
+        } else {
+          const testFriendsList = JSON.parse(testUserFriends[0].friends || "[]").map((f) => f.trim());
+          if (!testFriendsList.includes(login)) {
+            testFriendsList.push(login);
+            await db
+              .promise()
+              .query("UPDATE Friends SET friends = ? WHERE username = ?", [
+                JSON.stringify(testFriendsList),
+                TEST_USER,
+              ]);
+          }
+        }
+
+        console.log(`✅ Użytkownik ${login} dodany do znajomych z ${TEST_USER}`);
+      }
+    } catch (friendError) {
+      console.error("⚠️ Błąd przy dodawaniu test_user2 do znajomych:", friendError.message);
+      // Błąd przy dodawaniu znajomego nie zatrzymuje rejestracji
+    }
+
     // Tworzenie tokena JWT
     const token = jwt.sign({ email, role }, process.env.TOKEN_SECRET, {
       expiresIn: "1h",

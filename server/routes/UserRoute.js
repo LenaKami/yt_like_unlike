@@ -25,7 +25,7 @@ router.get("/ping", authenticate, (req, res) => {
 router.get("/:username/image", UserController.getUserImage);
 
 // Upload user's profile image
-router.post("/:username/image", UserController.uploadUserImage);
+router.post("/:username/image", upload.any(), UserController.uploadUserImage);
 
 //router.post('/login', UserController.login)
 

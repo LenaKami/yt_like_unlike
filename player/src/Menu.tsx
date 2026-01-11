@@ -4,9 +4,11 @@ import { WaNavLink } from './onkrzyczy';
 import { routes } from "./routes";
 import { UserMenu } from "./userdb/UserMenu";
 import { useAuthContext } from "./Auth/AuthContext";
+import { useToast } from "./Toast/ToastContext";
 
 export const Menu = () => {
   const { isLoggedIn, username, image: authImage } = useAuthContext();
+  const { showToast } = useToast();
   const [userImage, setUserImage] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -52,13 +54,13 @@ export const Menu = () => {
         // Refresh the image
         await fetchUserImage();
         // Show success message
-        alert('Zdjęcie profilowe zostało zaktualizowane!');
+        showToast('Zdjęcie profilowe zostało zaktualizowane!', 'success', 2000);
       } else {
-        alert('Błąd podczas aktualizacji zdjęcia');
+        showToast('Błąd podczas aktualizacji zdjęcia', 'error', 3000);
       }
     } catch (e) {
       console.error('Failed to upload user image', e);
-      alert('Błąd podczas przesyłania zdjęcia');
+      showToast('Błąd podczas przesyłania zdjęcia', 'error', 3000);
     } finally {
       setIsUploadingImage(false);
     }
