@@ -15,19 +15,12 @@ type Friend = {
   active?: boolean;
 };
 
-const STORAGE_KEY = 'friendsList';
-
 export const FriendsPage = () => {
   const classinput = "input-color border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500"
   const classlabel = "block mb-2 text-sm font-medium text-white"
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
-  const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
-  const [message, setMessage] = useState<string>('');
-  const messageTimeout = useRef<number | null>(null);
-  const [messageType, setMessageType] = useState<'success'|'error'|'info'>('info');
   const [showModal, setShowModal] = useState(false);
-  const [name, setName] = useState('');
   const [suggestions, setSuggestions] = useState<{ login: string; profile_picture?: string }[]>([]);
   const searchTimeout = useRef<number | null>(null);
 
@@ -62,12 +55,6 @@ export const FriendsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.username]);
 
-  const fetchAll = async () => {
-    await fetchFriends();
-    await fetchOnlineFriends();
-    await fetchRequests();
-  };
-
   const fetchFriends = async () => {
     try {
       const token = localStorage.getItem('jwtToken');
@@ -92,6 +79,7 @@ export const FriendsPage = () => {
       setFriends(list);
     } catch (err) {
       console.error('fetchFriends error', err);
+      showToast('Błąd podczas pobierania przyjaćół', 'error', 3000);
     }
   };
 
@@ -106,6 +94,7 @@ export const FriendsPage = () => {
       setFriends((prev) => prev.map(f => ({ ...f, active: online.includes(f.id) })));
     } catch (err) {
       console.error('fetchOnlineFriends error', err);
+      showToast('Błąd podczas sprawdzania statusu', 'error', 3000);
     }
   };
 
@@ -115,16 +104,15 @@ export const FriendsPage = () => {
       const headers: any = {};
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const [incRes, outRes] = await Promise.all([
+      const [incRes] = await Promise.all([
         fetch(`${API_BASE}/friend/requests/incoming/${auth.username}`),
         fetch(`${API_BASE}/friend/requests/outgoing/${auth.username}`),
       ]);
       const incJson = await incRes.json();
-      const outJson = await outRes.json();
       setIncomingRequests(incJson.data || []);
-      setOutgoingRequests(outJson.data || []);
     } catch (err) {
       console.error('fetchRequests error', err);
+      showToast('Błąd podczas pobierania zaprošeń', 'error', 3000);
     }
   };
 
@@ -147,8 +135,6 @@ export const FriendsPage = () => {
         showToast(json.message || 'Nie udało się wysłać zaproszenia', 'error');
       }
       
-      if (messageTimeout.current) window.clearTimeout(messageTimeout.current);
-      messageTimeout.current = window.setTimeout(() => setMessage(''), 3000) as unknown as number;
       await fetchRequests();
     } catch (err) {
       console.error('sendFriendRequest error', err);
@@ -164,8 +150,6 @@ export const FriendsPage = () => {
   setShowModal(false);
 };
 
-
-  const removeFriend = (id: string) => setFriends((s) => s.filter((f) => f.id !== id));
 
   const removeFriendBackend = async (friendId: string) => {
     try {
@@ -183,14 +167,14 @@ export const FriendsPage = () => {
         setFriends((s) => s.filter((f) => f.id !== friendId));
         // also refresh requests/online if needed
         await fetchOnlineFriends();
-        setMessage('✅ Usunięto znajomego');
-        if (messageTimeout.current) window.clearTimeout(messageTimeout.current);
-        messageTimeout.current = window.setTimeout(() => setMessage(''), 3000) as unknown as number;
+        showToast('Przyjaciela usunięty', 'success', 3000);
       } else {
         console.error('Failed to remove friend', await res.text());
+        showToast('Błąd podczas usuwania przyjaciela', 'error', 3000);
       }
     } catch (err) {
       console.error('removeFriendBackend error', err);
+      showToast('Błąd podczas usuwania przyjaciela', 'error', 3000);
     }
   };
 
@@ -379,13 +363,13 @@ export const FriendsPage = () => {
                         if (token) headers.Authorization = `Bearer ${token}`;
                         const res = await fetch(`${API_BASE}/friend/requests/${r.id}/reject`, { method: 'POST', headers });
                         try {
-                          const json = await res.json();
-                          setMessage(json.message || (res.ok ? '❌ Zaproszenie odrzucone' : 'Błąd'));
-                          setMessageType(res.ok ? 'success' : 'error');
-                        } catch { }
-                        if (messageTimeout.current) window.clearTimeout(messageTimeout.current);
-                        messageTimeout.current = window.setTimeout(() => setMessage(''), 3000) as unknown as number;
-                        await fetchRequests();
+                          if (res.ok) {
+                            showToast('Zaproszenie odrzucone', 'success');
+                            await fetchRequests();
+                          } else {
+                            showToast('Błąd podczas odrzucania zaproszenia', 'error');
+                          }
+                      } catch { }
                       }}
                       className="log-in-e px-4 py-2 font-medium"
                     >
@@ -399,13 +383,14 @@ export const FriendsPage = () => {
                         if (token) headers.Authorization = `Bearer ${token}`;
                         const res = await fetch(`${API_BASE}/friend/requests/${r.id}/accept`, { method: 'POST', headers });
                         try {
-                          const json = await res.json();
-                          setMessage(json.message || (res.ok ? '✅ Zaproszenie zaakceptowane' : 'Błąd'));
-                          setMessageType(res.ok ? 'success' : 'error');
-                        } catch { }
-                        if (messageTimeout.current) window.clearTimeout(messageTimeout.current);
-                        messageTimeout.current = window.setTimeout(() => setMessage(''), 3000) as unknown as number;
-                        await fetchAll();
+                          if (res.ok) {
+                            showToast('Zaproszenie zaakceptowane', 'success');
+                            await fetchRequests();
+                            await fetchFriends();
+                          } else {
+                            showToast('Błąd podczas akceptowania zaproszenia', 'error');
+                          }
+                      } catch { }
                       }}
                       className="log-in px-4 py-2 font-medium"
                     >
@@ -418,19 +403,6 @@ export const FriendsPage = () => {
           )}
         </div>
       </section>
-{message && (
-  <p
-    className={
-      messageType === 'success'
-        ? 'text-green-600 bg-green-100 border border-green-300 rounded px-3 py-2'
-        : messageType === 'error'
-        ? 'text-red-600 bg-red-100 border border-red-300 rounded px-3 py-2'
-        : 'text-slate-700 bg-slate-100 border border-slate-300 rounded px-3 py-2'
-    }
-  >
-    {message}
-  </p>
-)}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-50" onClick={() => setShowModal(false)} />
@@ -468,6 +440,7 @@ export const FriendsPage = () => {
                                       setSuggestions(json.data || []);
                                     } catch (err) {
                                       console.error('search error', err);
+                                      showToast('Błąd podczas wyszukiwania użytkownika', 'error', 3000);
                                     }
                                   }, 300) as unknown as number;
                                 }

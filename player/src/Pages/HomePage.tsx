@@ -149,6 +149,7 @@ export const HomePage = () => {
         setPlaylistOptions(options);
       } catch (e) {
         console.error('Błąd ładowania playlist:', e);
+        showToast('Błąd ładowania playlist', 'error', 3000);
       }
     })();
   }, [auth.isLoggedIn, auth.username]);
@@ -195,6 +196,7 @@ export const HomePage = () => {
       setFriends(list);
     } catch (err) {
       console.error('fetchOnlineFriends error', err);
+      showToast('Błąd podczas pobierania statusu przyjaciół', 'error', 3000);
     }
   };
 
@@ -218,6 +220,7 @@ export const HomePage = () => {
       }
     } catch (e) {
       console.error('Failed to read tasks from storage', e);
+      showToast('Błąd podczas wczytywania zadań', 'error', 3000);
     }
   };
 
@@ -304,6 +307,7 @@ export const HomePage = () => {
       setTasks([]);
     } catch (err) {
       console.error('fetchUpcomingTasks error', err);
+      showToast('Błąd podczas pobierania zadań', 'error', 3000);
     }
   };
 
@@ -324,6 +328,7 @@ export const HomePage = () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
     } catch (e) {
       console.error('Failed to save tasks to storage', e);
+      showToast('Błąd podczas zapisywania zadań', 'error', 3000);
     }
   }, [tasks]);
 

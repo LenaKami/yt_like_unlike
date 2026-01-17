@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChartBarIcon, CheckCircleIcon, ClockIcon, QuestionMarkCircleIcon } from '@heroicons/react/24/solid';
 import { useAuthContext } from '../Auth/AuthContext';
+import { useToast } from '../Toast/ToastContext';
 
 const STUDY_API = 'http://localhost:5000/study';
 
@@ -12,6 +13,7 @@ type DayStats = {
 
 export const StatisticsPage = () => {
   const { isLoggedIn, username } = useAuthContext();
+  const { showToast } = useToast();
   const [weekStats, setWeekStats] = useState<DayStats[]>([
     { day: 'Pon', completed: 0, total: 0 },
     { day: 'Wt', completed: 0, total: 0 },
@@ -41,6 +43,7 @@ export const StatisticsPage = () => {
         }
       } catch (e) {
         console.error('Błąd ładowania statystyk:', e);
+        showToast('Błąd ładowania statystyk', 'error', 3000);
       }
     };
 

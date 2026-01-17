@@ -8,6 +8,7 @@ import { XMarkIcon,} from '@heroicons/react/24/solid';
 import { useAuthContext } from '../Auth/AuthContext';
 import { useToast } from '../Toast/ToastContext';
 import musicApi from '../api/musicApi';
+import { fileApi } from '../api/fileApi';
 
 const STUDY_API = 'http://localhost:5000/study';
 
@@ -18,10 +19,24 @@ type PlaylistOption = {
   type: 'subcategory' | 'playlist';
 };
 
+// ===== Material Option Type =====
+type MaterialOption = {
+  id: number;
+  name: string;
+  type: 'folder' | 'file';
+};
+
 // ===== Playlist Ref Type (for storing in tasks) =====
 type PlaylistRef = {
   type: 'subcategory' | 'playlist';
   id: number;
+};
+
+// ===== Material Ref Type (for storing in tasks) =====
+type MaterialRef = {
+  type: 'folder' | 'file';
+  id: number;
+  name: string;
 };
 
 // ===== Types =====
@@ -32,6 +47,7 @@ type Task = {
   start: string; // hh:mm
   end: string; // hh:mm
   playlist: PlaylistRef | null;
+  material: MaterialRef | null;
   active?: boolean;
 };
 
@@ -88,6 +104,25 @@ const getPlaylistName = (playlistRef: PlaylistRef | null, options: PlaylistOptio
   return option ? option.name : '';
 };
 
+// ===== Helper to get material name from MaterialRef =====
+const getMaterialName = (materialRef: MaterialRef | null): string => {
+  if (!materialRef) return '';
+  return materialRef.name;
+};
+
+// ===== Helper to convert material select value to MaterialRef =====
+const parseMaterialId = (materialValue: string, options: MaterialOption[]): MaterialRef | null => {
+  if (!materialValue) return null;
+  const option = options.find(opt => String(opt.id) === materialValue);
+  if (!option) return null;
+  return { type: option.type, id: option.id, name: option.name };
+};
+
+// ===== Helper to convert MaterialRef to string ID for select =====
+const materialRefToId = (ref: MaterialRef | null): string => {
+  if (!ref) return '';
+  return String(ref.id);
+};
 // ===== Component =====
 export const PlanNaukiPage = () => {
   const classinput =
@@ -100,6 +135,8 @@ export const PlanNaukiPage = () => {
   const [end, setEnd] = useState('');
   const [playlistOptions, setPlaylistOptions] = useState<PlaylistOption[]>([]);
   const [playlist, setPlaylist] = useState<string>('');
+  const [materialOptions, setMaterialOptions] = useState<MaterialOption[]>([]);
+  const [material, setMaterial] = useState<string>('');
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [monthCursor, setMonthCursor] = useState(() => {
@@ -128,6 +165,7 @@ export const PlanNaukiPage = () => {
       }
     } catch (e) {
       console.error('Failed to load taskPlaylistMap', e);
+      showToast('Błąd podczas wczytywania mapowania playlist', 'error', 3000);
     }
   }, []);
 
@@ -137,6 +175,7 @@ export const PlanNaukiPage = () => {
       localStorage.setItem('taskPlaylistMap', JSON.stringify(taskPlaylistMap));
     } catch (e) {
       console.error('Failed to save taskPlaylistMap', e);
+      showToast('Błąd podczas zapisywania mapowania playlist', 'error', 3000);
     }
   }, [taskPlaylistMap]);
   // Load playlists (categories, subcategories, user playlists)
@@ -171,15 +210,56 @@ export const PlanNaukiPage = () => {
         }
 
         setPlaylistOptions(options);
-        // Set default to first option
-        if (options.length > 0 && !playlist) {
-          setPlaylist(String(options[0].id));
+        // Set default to empty (no playlist selected)
+        if (!playlist) {
+          setPlaylist('');
         }
       } catch (e) {
         console.error('Błąd ładowania playlist:', e);
+        showToast('Błąd podczas ładowania playlist', 'error', 3000);
       }
     })();
   }, [isLoggedIn, username]);
+
+  // Load materials (files only, no folders)
+  useEffect(() => {
+    if (!isLoggedIn || !username) return;
+    (async () => {
+      try {
+        const options: MaterialOption[] = [];
+
+        // Get user files
+        const files = await fileApi.getUserFiles(username);
+        for (const file of files) {
+          options.push({
+            id: file.id,
+            name: file.filename,
+            type: 'file'
+          });
+        }
+
+        // Get shared files
+        const sharedFiles = await fileApi.getSharedFiles(username);
+        for (const file of sharedFiles) {
+          options.push({
+            id: file.id,
+            name: `${file.filename} (od: ${file.username})`,
+            type: 'file'
+          });
+        }
+
+        setMaterialOptions(options);
+        // Set default to empty (no material selected)
+        if (!material) {
+          setMaterial('');
+        }
+      } catch (e) {
+        console.error('Błąd ładowania materiałów:', e);
+        showToast('Błąd podczas ładowania materiałów', 'error', 3000);
+      }
+    })();
+  }, [isLoggedIn, username]);
+
   // Load plans and lessons from backend for logged in user
   useEffect(() => {
     if (!isLoggedIn || !username) return;
@@ -210,7 +290,12 @@ export const PlanNaukiPage = () => {
               } else {
                 playlistRef = taskPlaylistMap[String(row.id)] || null;
               }
-              return { id: String(row.id), name: row.title, date, start, end, playlist: playlistRef, active: !row.completed } as Task;
+              // Build MaterialRef from backend data
+              let materialRef: MaterialRef | null = null;
+              if (row.material_type && row.material_id) {
+                materialRef = { type: row.material_type, id: row.material_id, name: row.material_name || '' };
+              }
+              return { id: String(row.id), name: row.title, date, start, end, playlist: playlistRef, material: materialRef, active: !row.completed } as Task;
             });
             setTasks(mapped);
           }
@@ -226,6 +311,7 @@ export const PlanNaukiPage = () => {
         }
       } catch (e) {
         console.error('Błąd ładowania planu:', e);
+        showToast('Błąd podczas ładowania planu', 'error', 3000);
       }
     })();
   }, [isLoggedIn, username, taskPlaylistMap]);
@@ -248,13 +334,16 @@ const tasksByDate = useMemo(() => {
 
   useEffect(() => {
     try { localStorage.setItem('studyPlanTasks', JSON.stringify(tasks)); }
-    catch (e) { console.error('Failed to save tasks', e); }
+    catch (e) { console.error('Failed to save tasks', e); showToast('Błąd podczas zapisywania zadań', 'error', 3000); }
   }, [tasks]);
 
 const onSubmit: SubmitHandler<StudyFormData> = (data) => {
   console.log('onSubmit called', data);
   // Parse playlist ID to get type and id
   const playlistRef = parsePlaylistId(playlist);
+  
+  // Parse material ID to get type and id
+  const materialRef = parseMaterialId(data.material || '', materialOptions);
   
   // create task object locally; id will be replaced with backend id when available
   const tempId = String(Date.now());
@@ -265,6 +354,7 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
     start: data.startg,
     end: data.endg,
     playlist: playlistRef,
+    material: materialRef,
     active: true,
   };
 
@@ -291,6 +381,8 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
             duration_minutes: Math.max(1, (parseInt(data.endg.slice(0, 2)) * 60 + parseInt(data.endg.slice(3))) - (parseInt(data.startg.slice(0, 2)) * 60 + parseInt(data.startg.slice(3)))),
             playlist_type: playlistRef?.type || null,
             playlist_id: playlistRef?.id || null,
+            material_type: materialRef?.type || null,
+            material_id: materialRef?.id || null,
           }),
         });
         const j = await res.json();
@@ -314,26 +406,16 @@ const onSubmit: SubmitHandler<StudyFormData> = (data) => {
   }
 
   reset();
-  if (playlistOptions.length > 0) {
-    setPlaylist(String(playlistOptions[0].id));
-  }
+  setPlaylist('');
+  setMaterial('');
 };
 
 
 const clearForm = () => {
 reset();
-if (playlistOptions.length > 0) {
-  setPlaylist(String(playlistOptions[0].id));
-}
+setPlaylist('');
+setMaterial('');
 };
-  const addTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !date || !start || !end) return;
-    const playlistRef = parsePlaylistId(playlist);
-    const newTask: Task = { id: String(Date.now()), name, date, start, end, playlist: playlistRef, active: true };
-    setTasks((s) => [...s, newTask].sort((a,b)=> (a.date+a.start).localeCompare(b.date+b.start)));
-    clearForm();
-  };
   const editTask = (id: string) => {
     const task = tasks.find(t => t.id === id);
     if (task) {
@@ -343,6 +425,7 @@ if (playlistOptions.length > 0) {
       setStart(task.start);
       setEnd(task.end);
       setPlaylist(playlistRefToId(task.playlist));
+      setMaterial(materialRefToId(task.material));
       setShowEditModal(true);
     }
   };
@@ -350,10 +433,11 @@ if (playlistOptions.length > 0) {
   const saveEdit = () => {
     if (!editingTask || !name || !date || !start || !end) return;
     const playlistRef = parsePlaylistId(playlist);
+    const materialRef = parseMaterialId(material, materialOptions);
     setTasks((prev) =>
       prev.map(t => 
         t.id === editingTask.id 
-          ? { ...t, name, date, start, end, playlist: playlistRef }
+          ? { ...t, name, date, start, end, playlist: playlistRef, material: materialRef }
           : t
       ).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
     );
@@ -368,6 +452,8 @@ if (playlistOptions.length > 0) {
             duration_minutes: Math.max(1, (parseInt(end.slice(0,2))*60+parseInt(end.slice(3)))-(parseInt(start.slice(0,2))*60+parseInt(start.slice(3)))),
             playlist_type: playlistRef?.type || null,
             playlist_id: playlistRef?.id || null,
+            material_type: materialRef?.type || null,
+            material_id: materialRef?.id || null,
           })
         });
         showToast('Zapisano zmiany', 'success');
@@ -385,7 +471,7 @@ if (playlistOptions.length > 0) {
   const deleteTask = (id: string) => {
     setTasks((s)=> s.filter(t=> t.id!==id));
     (async ()=>{
-      try { await fetch(`${STUDY_API}/plan/lesson/delete/${id}`); } catch(e){console.error(e)}
+      try { await fetch(`${STUDY_API}/plan/lesson/delete/${id}`); } catch(e){ console.error(e); showToast('Błąd podczas usuwania zadania', 'error', 3000); }
     })();
     // Remove from playlist mapping
     setTaskPlaylistMap((prev) => {
@@ -552,6 +638,7 @@ value={playlist}
 onChange={(e) => setPlaylist(e.target.value)}
 className={classinput}
 >
+  <option value="">Wybierz playlistę</option>
 {playlistOptions.length === 0 ? (
   <option>Brak dostępnych playlist</option>
 ) : (
@@ -564,12 +651,34 @@ className={classinput}
 </select>
 </div>
 
+<div>
+<label className={classlabel}>Materiał (opcjonalnie)</label>
+<select
+value={material}
+onChange={(e) => setMaterial(e.target.value)}
+className={classinput}
+>
+<option value="">Wybierz materiał</option>
+{materialOptions.length === 0 ? (
+  <>
+    <option disabled>Brak dostępnych materiałów</option>
+  </>
+) : (
+  materialOptions.map((opt) => (
+    <option key={opt.id} value={String(opt.id)}>
+      {opt.name}
+    </option>
+  ))
+)}
+</select>
+</div>
+
 
 <div className="flex gap-2">
 <button type="button" onClick={clearForm} className="log-in-e flex-1 py-2">
 Wyczyść
 </button>
-<button type="submit" className="log-in flex-1 py-2">
+<button type="submit" className="log-in flex-1 py-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!playlist}>
 Dodaj
 </button>
 </div>
@@ -613,6 +722,12 @@ Dodaj
           </div>
           <div className="text-xs">
             {t.start}-{t.end} • {getPlaylistName(t.playlist, playlistOptions)}
+            {t.material && (
+              <>
+                <br />
+                📎 {getMaterialName(t.material)}
+              </>
+            )}
           </div>
           <div className="absolute top-0 right-0 flex items-center gap-2">
             {pendingDeletions[t.id] ? (
@@ -754,11 +869,35 @@ Dodaj
                   onChange={(e) => setPlaylist(e.target.value)}
                   className={classinput}
                 >
+                  <option value="">Wybierz playlistę</option>
                   {playlistOptions.length === 0 ? (
                     <option>Brak dostępnych playlist</option>
                   ) : (
                     playlistOptions.map((opt) => (
                       <option key={opt.id} value={opt.id}>
+                        {opt.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {!playlist && <p className='text-orange-500 text-sm mt-1'>Playlist jest wymagana</p>}
+              </div>
+
+              <div>
+                <label className={classlabel}>Materiał (opcjonalnie)</label>
+                <select
+                  value={material}
+                  onChange={(e) => setMaterial(e.target.value)}
+                  className={classinput}
+                >
+                  <option value="">Brak materiału</option>
+                  {materialOptions.length === 0 ? (
+                    <>
+                      <option disabled>Brak dostępnych materiałów</option>
+                    </>
+                  ) : (
+                    materialOptions.map((opt) => (
+                      <option key={opt.id} value={String(opt.id)}>
                         {opt.name}
                       </option>
                     ))

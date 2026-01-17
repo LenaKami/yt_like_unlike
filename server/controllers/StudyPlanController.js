@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const db = require("../database/db");
 
 // Ensure study-related tables exist
 const createStudyPlanTableQuery = `
@@ -29,28 +29,49 @@ const createLessonsTableQuery = `
 db.promise()
   .query(createStudyPlanTableQuery)
   .then(() => console.log("✅ Tabela StudyPlans jest gotowa!"))
-  .catch((err) => console.error("❌ Błąd przy tworzeniu tabeli StudyPlans:", err.message));
+  .catch((err) =>
+    console.error("❌ Błąd przy tworzeniu tabeli StudyPlans:", err.message)
+  );
 
 // Ensure unique index on user_login to prevent duplicate plans per user
 db.promise()
-  .query('ALTER TABLE StudyPlans ADD UNIQUE INDEX unique_user_login (user_login)')
-  .then(() => console.log('✅ Indeks unique_user_login dodany'))
+  .query(
+    "ALTER TABLE StudyPlans ADD UNIQUE INDEX unique_user_login (user_login)"
+  )
+  .then(() => console.log("✅ Indeks unique_user_login dodany"))
   .catch(() => {});
 
 db.promise()
   .query(createLessonsTableQuery)
   .then(() => console.log("✅ Tabela Lessons jest gotowa!"))
-  .catch((err) => console.error("❌ Błąd przy tworzeniu tabeli Lessons:", err.message));
+  .catch((err) =>
+    console.error("❌ Błąd przy tworzeniu tabeli Lessons:", err.message)
+  );
 
 // Add playlist_type and playlist_id columns if they don't exist
 db.promise()
-  .query('ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS playlist_type VARCHAR(20)')
-  .then(() => console.log('✅ Kolumna playlist_type sprawdzona/dodana'))
+  .query(
+    "ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS playlist_type VARCHAR(20)"
+  )
+  .then(() => console.log("✅ Kolumna playlist_type sprawdzona/dodana"))
   .catch(() => {});
 
 db.promise()
-  .query('ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS playlist_id INT')
-  .then(() => console.log('✅ Kolumna playlist_id sprawdzona/dodana'))
+  .query("ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS playlist_id INT")
+  .then(() => console.log("✅ Kolumna playlist_id sprawdzona/dodana"))
+  .catch(() => {});
+
+// Add material_type and material_id columns if they don't exist
+db.promise()
+  .query(
+    "ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS material_type VARCHAR(20)"
+  )
+  .then(() => console.log("✅ Kolumna material_type sprawdzona/dodana"))
+  .catch(() => {});
+
+db.promise()
+  .query("ALTER TABLE Lessons ADD COLUMN IF NOT EXISTS material_id INT")
+  .then(() => console.log("✅ Kolumna material_id sprawdzona/dodana"))
   .catch(() => {});
 
 module.exports = {
@@ -58,21 +79,37 @@ module.exports = {
   addPlan: async (req, res) => {
     try {
       const { user_login, title } = req.body;
-      if (!user_login) return res.status(400).json({ status: 400, message: 'Brak user_login' });
+      if (!user_login)
+        return res
+          .status(400)
+          .json({ status: 400, message: "Brak user_login" });
       // Try to insert only if not exists (works even without unique index)
       const insertQuery = `
         INSERT INTO StudyPlans (user_login, title)
         SELECT ?, ? FROM DUAL
         WHERE NOT EXISTS (SELECT 1 FROM StudyPlans WHERE user_login = ?)
       `;
-      await db.promise().query(insertQuery, [user_login, title || 'Mój plan', user_login]);
+      await db
+        .promise()
+        .query(insertQuery, [user_login, title || "Mój plan", user_login]);
       // return the plan (either existing or newly created)
-      const [rows] = await db.promise().query('SELECT * FROM StudyPlans WHERE user_login = ?', [user_login]);
-      if (rows && rows.length > 0) return res.status(200).json({ status: 200, data: { id: rows[0].id }, message: 'Plan gotowy' });
+      const [rows] = await db
+        .promise()
+        .query("SELECT * FROM StudyPlans WHERE user_login = ?", [user_login]);
+      if (rows && rows.length > 0)
+        return res
+          .status(200)
+          .json({
+            status: 200,
+            data: { id: rows[0].id },
+            message: "Plan gotowy",
+          });
       // fallback
-      res.status(500).json({ status: 500, message: 'Nie udało się utworzyć planu' });
+      res
+        .status(500)
+        .json({ status: 500, message: "Nie udało się utworzyć planu" });
     } catch (err) {
-      console.error('addPlan error:', err);
+      console.error("addPlan error:", err);
       res.status(500).json({ status: 500, message: err.message });
     }
   },
@@ -81,7 +118,9 @@ module.exports = {
   getPlansForUser: async (req, res) => {
     try {
       const username = req.params.username;
-      const [rows] = await db.promise().query('SELECT * FROM StudyPlans WHERE user_login = ?', [username]);
+      const [rows] = await db
+        .promise()
+        .query("SELECT * FROM StudyPlans WHERE user_login = ?", [username]);
       res.status(200).json({ status: 200, data: rows });
     } catch (err) {
       res.status(500).json({ status: 500, message: err.message });
@@ -92,8 +131,8 @@ module.exports = {
   deletePlan: async (req, res) => {
     try {
       const id = req.params.id;
-      await db.promise().query('DELETE FROM StudyPlans WHERE id = ?', [id]);
-      res.status(200).json({ status: 200, message: 'Plan usunięty' });
+      await db.promise().query("DELETE FROM StudyPlans WHERE id = ?", [id]);
+      res.status(200).json({ status: 200, message: "Plan usunięty" });
     } catch (err) {
       res.status(500).json({ status: 500, message: err.message });
     }
@@ -102,32 +141,87 @@ module.exports = {
   // Add lesson to a plan
   addLesson: async (req, res) => {
     try {
-      let { plan_id, title, description, scheduled_at, duration_minutes, playlist_type, playlist_id } = req.body;
-      if (!plan_id || !title) return res.status(400).json({ status: 400, message: 'Brak plan_id lub title' });
+      let {
+        plan_id,
+        title,
+        description,
+        scheduled_at,
+        duration_minutes,
+        playlist_type,
+        playlist_id,
+        material_type,
+        material_id,
+      } = req.body;
+      if (!plan_id || !title)
+        return res
+          .status(400)
+          .json({ status: 400, message: "Brak plan_id lub title" });
       // normalize plan_id to integer
       plan_id = parseInt(plan_id, 10);
-      if (isNaN(plan_id)) return res.status(400).json({ status: 400, message: 'Nieprawidłowe plan_id' });
+      if (isNaN(plan_id))
+        return res
+          .status(400)
+          .json({ status: 400, message: "Nieprawidłowe plan_id" });
       // normalize datetime: accept both 'T' and space
-      if (scheduled_at && typeof scheduled_at === 'string') {
-        scheduled_at = scheduled_at.replace('T', ' ');
+      if (scheduled_at && typeof scheduled_at === "string") {
+        scheduled_at = scheduled_at.replace("T", " ");
       }
       // Validate and normalize playlist_type and playlist_id
-      if (playlist_type && !['subcategory', 'playlist'].includes(playlist_type)) {
-        return res.status(400).json({ status: 400, message: 'Nieprawidłowy playlist_type' });
+      if (
+        playlist_type &&
+        !["subcategory", "playlist"].includes(playlist_type)
+      ) {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Nieprawidłowy playlist_type" });
       }
       if (playlist_id) {
         playlist_id = parseInt(playlist_id, 10);
         if (isNaN(playlist_id)) {
-          return res.status(400).json({ status: 400, message: 'Nieprawidłowe playlist_id' });
+          return res
+            .status(400)
+            .json({ status: 400, message: "Nieprawidłowe playlist_id" });
         }
       }
-      const [result] = await db.promise().query(
-        'INSERT INTO Lessons (plan_id, title, description, scheduled_at, duration_minutes, playlist_type, playlist_id) VALUES (?,?,?,?,?,?,?)',
-        [plan_id, title, description || null, scheduled_at || null, duration_minutes || 0, playlist_type || null, playlist_id || null]
-      );
-      res.status(200).json({ status: 200, data: { id: result.insertId }, message: 'Lekcja dodana' });
+      // Validate and normalize material_type and material_id
+      if (material_type && !["file", "folder"].includes(material_type)) {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Nieprawidłowy material_type" });
+      }
+      if (material_id) {
+        material_id = parseInt(material_id, 10);
+        if (isNaN(material_id)) {
+          return res
+            .status(400)
+            .json({ status: 400, message: "Nieprawidłowe material_id" });
+        }
+      }
+      const [result] = await db
+        .promise()
+        .query(
+          "INSERT INTO Lessons (plan_id, title, description, scheduled_at, duration_minutes, playlist_type, playlist_id, material_type, material_id) VALUES (?,?,?,?,?,?,?,?,?)",
+          [
+            plan_id,
+            title,
+            description || null,
+            scheduled_at || null,
+            duration_minutes || 0,
+            playlist_type || null,
+            playlist_id || null,
+            material_type || null,
+            material_id || null,
+          ]
+        );
+      res
+        .status(200)
+        .json({
+          status: 200,
+          data: { id: result.insertId },
+          message: "Lekcja dodana",
+        });
     } catch (err) {
-      console.error('addLesson error:', err);
+      console.error("addLesson error:", err);
       res.status(500).json({ status: 500, message: err.message });
     }
   },
@@ -136,7 +230,12 @@ module.exports = {
   getLessonsForPlan: async (req, res) => {
     try {
       const planId = req.params.planId;
-      const [rows] = await db.promise().query('SELECT * FROM Lessons WHERE plan_id = ? ORDER BY scheduled_at ASC, created_at ASC', [planId]);
+      const [rows] = await db
+        .promise()
+        .query(
+          "SELECT * FROM Lessons WHERE plan_id = ? ORDER BY scheduled_at ASC, created_at ASC",
+          [planId]
+        );
       res.status(200).json({ status: 200, data: rows });
     } catch (err) {
       res.status(500).json({ status: 500, message: err.message });
@@ -147,37 +246,80 @@ module.exports = {
   updateLesson: async (req, res) => {
     try {
       const id = req.params.id;
-      const { title, description, scheduled_at, duration_minutes, completed, playlist_type, playlist_id } = req.body;
-      const [rows] = await db.promise().query('SELECT * FROM Lessons WHERE id = ?', [id]);
-      if (rows.length === 0) return res.status(404).json({ status: 404, message: 'Lekcja nie znaleziona' });
-      
+      const {
+        title,
+        description,
+        scheduled_at,
+        duration_minutes,
+        completed,
+        playlist_type,
+        playlist_id,
+        material_type,
+        material_id,
+      } = req.body;
+      const [rows] = await db
+        .promise()
+        .query("SELECT * FROM Lessons WHERE id = ?", [id]);
+      if (rows.length === 0)
+        return res
+          .status(404)
+          .json({ status: 404, message: "Lekcja nie znaleziona" });
+
       // Validate playlist_type if provided
-      if (playlist_type && !['subcategory', 'playlist'].includes(playlist_type)) {
-        return res.status(400).json({ status: 400, message: 'Nieprawidłowy playlist_type' });
+      if (
+        playlist_type &&
+        !["subcategory", "playlist"].includes(playlist_type)
+      ) {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Nieprawidłowy playlist_type" });
       }
       // Normalize playlist_id if provided
       let normalizedPlaylistId = playlist_id;
       if (playlist_id) {
         normalizedPlaylistId = parseInt(playlist_id, 10);
         if (isNaN(normalizedPlaylistId)) {
-          return res.status(400).json({ status: 400, message: 'Nieprawidłowe playlist_id' });
+          return res
+            .status(400)
+            .json({ status: 400, message: "Nieprawidłowe playlist_id" });
         }
       }
-      
-      await db.promise().query(
-        'UPDATE Lessons SET title = ?, description = ?, scheduled_at = ?, duration_minutes = ?, completed = ?, playlist_type = ?, playlist_id = ? WHERE id = ?',
-        [
-          title || rows[0].title,
-          description || rows[0].description,
-          scheduled_at || rows[0].scheduled_at,
-          duration_minutes ?? rows[0].duration_minutes,
-          completed ?? rows[0].completed,
-          playlist_type ?? rows[0].playlist_type,
-          normalizedPlaylistId ?? rows[0].playlist_id,
-          id
-        ]
-      );
-      res.status(200).json({ status: 200, message: 'Lekcja zaktualizowana' });
+
+      // Validate material_type if provided
+      if (material_type && !["file", "folder"].includes(material_type)) {
+        return res
+          .status(400)
+          .json({ status: 400, message: "Nieprawidłowy material_type" });
+      }
+      // Normalize material_id if provided
+      let normalizedMaterialId = material_id;
+      if (material_id) {
+        normalizedMaterialId = parseInt(material_id, 10);
+        if (isNaN(normalizedMaterialId)) {
+          return res
+            .status(400)
+            .json({ status: 400, message: "Nieprawidłowe material_id" });
+        }
+      }
+
+      await db
+        .promise()
+        .query(
+          "UPDATE Lessons SET title = ?, description = ?, scheduled_at = ?, duration_minutes = ?, completed = ?, playlist_type = ?, playlist_id = ?, material_type = ?, material_id = ? WHERE id = ?",
+          [
+            title || rows[0].title,
+            description || rows[0].description,
+            scheduled_at || rows[0].scheduled_at,
+            duration_minutes ?? rows[0].duration_minutes,
+            completed ?? rows[0].completed,
+            playlist_type ?? rows[0].playlist_type,
+            normalizedPlaylistId ?? rows[0].playlist_id,
+            material_type ?? rows[0].material_type,
+            normalizedMaterialId ?? rows[0].material_id,
+            id,
+          ]
+        );
+      res.status(200).json({ status: 200, message: "Lekcja zaktualizowana" });
     } catch (err) {
       res.status(500).json({ status: 500, message: err.message });
     }
@@ -187,8 +329,8 @@ module.exports = {
   deleteLesson: async (req, res) => {
     try {
       const id = req.params.id;
-      await db.promise().query('DELETE FROM Lessons WHERE id = ?', [id]);
-      res.status(200).json({ status: 200, message: 'Lekcja usunięta' });
+      await db.promise().query("DELETE FROM Lessons WHERE id = ?", [id]);
+      res.status(200).json({ status: 200, message: "Lekcja usunięta" });
     } catch (err) {
       res.status(500).json({ status: 500, message: err.message });
     }
@@ -198,41 +340,46 @@ module.exports = {
   getWeeklyStatistics: async (req, res) => {
     try {
       const username = req.params.username;
-      console.log('Getting statistics for user:', username);
-      
+      console.log("Getting statistics for user:", username);
+
       // Get user's plan
-      const [plans] = await db.promise().query('SELECT id FROM StudyPlans WHERE user_login = ?', [username]);
-      console.log('Found plans:', plans);
+      const [plans] = await db
+        .promise()
+        .query("SELECT id FROM StudyPlans WHERE user_login = ?", [username]);
+      console.log("Found plans:", plans);
       if (!plans || plans.length === 0) {
-        console.log('No plans found for user:', username);
+        console.log("No plans found for user:", username);
         return res.status(200).json({ status: 200, data: [] });
       }
-      
+
       const planId = plans[0].id;
-      console.log('Using plan ID:', planId);
-      
+      console.log("Using plan ID:", planId);
+
       // Get current week's start and end
       const now = new Date();
       const dayOfWeek = now.getDay() || 7; // Sunday = 7
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - (dayOfWeek - 1));
       startOfWeek.setHours(0, 0, 0, 0);
-      
+
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);
       endOfWeek.setHours(23, 59, 59, 999);
-      
-      console.log('Week range:', { start: startOfWeek, end: endOfWeek });
-      
+
+      console.log("Week range:", { start: startOfWeek, end: endOfWeek });
+
       // Format dates for MySQL
       const formatDate = (date) => {
-        return date.toISOString().slice(0, 19).replace('T', ' ');
+        return date.toISOString().slice(0, 19).replace("T", " ");
       };
-      
+
       const startFormatted = formatDate(startOfWeek);
       const endFormatted = formatDate(endOfWeek);
-      console.log('Formatted dates:', { start: startFormatted, end: endFormatted });
-      
+      console.log("Formatted dates:", {
+        start: startFormatted,
+        end: endFormatted,
+      });
+
       // Get lessons for this week grouped by day
       const [lessons] = await db.promise().query(
         `SELECT 
@@ -248,40 +395,41 @@ module.exports = {
          ORDER BY lesson_date`,
         [planId, startFormatted, endFormatted]
       );
-      
-      console.log('Lessons found:', lessons);
-      
+
+      console.log("Lessons found:", lessons);
+
       // Create array for all 7 days of the week
-      const dayNames = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Ndz'];
+      const dayNames = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
       const weekStats = [];
-      
+
       for (let i = 0; i < 7; i++) {
         const currentDay = new Date(startOfWeek);
         currentDay.setDate(startOfWeek.getDate() + i);
         const dateStr = currentDay.toISOString().slice(0, 10);
-        
+
         // Find data for this day - convert lesson_date to string if it's a Date object
-        const dayData = lessons.find(l => {
+        const dayData = lessons.find((l) => {
           if (!l.lesson_date) return false;
-          const lessonDateStr = l.lesson_date instanceof Date 
-            ? l.lesson_date.toISOString().slice(0, 10)
-            : l.lesson_date.toString().slice(0, 10);
+          const lessonDateStr =
+            l.lesson_date instanceof Date
+              ? l.lesson_date.toISOString().slice(0, 10)
+              : l.lesson_date.toString().slice(0, 10);
           return lessonDateStr === dateStr;
         });
-        
+
         weekStats.push({
           day: dayNames[i],
           date: dateStr,
           completed: dayData ? parseInt(dayData.completed) : 0,
-          total: dayData ? parseInt(dayData.total) : 0
+          total: dayData ? parseInt(dayData.total) : 0,
         });
       }
-      
-      console.log('Week stats result:', weekStats);
+
+      console.log("Week stats result:", weekStats);
       res.status(200).json({ status: 200, data: weekStats });
     } catch (err) {
-      console.error('getWeeklyStatistics error:', err);
+      console.error("getWeeklyStatistics error:", err);
       res.status(500).json({ status: 500, message: err.message });
     }
-  }
+  },
 };

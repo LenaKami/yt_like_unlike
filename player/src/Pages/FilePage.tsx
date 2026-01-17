@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../Auth/AuthContext';
 import { Input } from "../ui"
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { type FileFormData, type FolderFormData, documentValidationSchema, folderValidationSchema } from "../types_file";
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PlusIcon, XMarkIcon, ShareIcon, FolderIcon, ChevronDownIcon, ChevronRightIcon, QuestionMarkCircleIcon, TrashIcon } from '@heroicons/react/24/solid';
-import { fileApi, type FileFromBackend, type FolderFromBackend, type User, type Friend } from '../api/fileApi';
+import { fileApi, type FileFromBackend, type FolderFromBackend, type Friend } from '../api/fileApi';
 import { useToast } from '../Toast/ToastContext';
 
 export const FilePage = () => {
@@ -20,13 +19,13 @@ export const FilePage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<FileFromBackend | null>(null);
   const [isCreatingNewFolder, setIsCreatingNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   
   const [documentToShare, setDocumentToShare] = useState<FileFromBackend | null>(null);
-  const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   
-  const navigate = useNavigate();
   const { username } = useAuthContext();
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FileFormData>({
@@ -161,18 +160,19 @@ export const FilePage = () => {
     }
   };
 
-  const handleDeleteFile = async (docId: number) => {
-    if (!username) return;
-    
+  const handleDeleteFile = (docId: number) => {
     const doc = documents.find(d => d.id === docId);
-    if (!doc) return;
-    
-    if (!confirm(`Czy na pewno chcesz usunąć plik "${doc.filename}"? Zostanie on również usunięty u znajomych, którym został udostępniony.`)) {
-      return;
+    if (doc) {
+      setFileToDelete(doc);
+      setShowDeleteConfirmModal(true);
     }
+  };
+
+  const confirmDeleteFile = async () => {
+    if (!username || !fileToDelete) return;
     
     showToast('Usuwanie pliku...', 'info', 1500);
-    const result = await fileApi.deleteFile(docId, username);
+    const result = await fileApi.deleteFile(fileToDelete.id, username);
 
     if (result.success) {
       showToast('Plik usunięty pomyślnie', 'success', 3000);
@@ -180,6 +180,9 @@ export const FilePage = () => {
     } else {
       showToast(result.message || 'Błąd podczas usuwania pliku', 'error', 3000);
     }
+    
+    setShowDeleteConfirmModal(false);
+    setFileToDelete(null);
   };
 
   const handleAddDocument: SubmitHandler<FileFormData> = async (data) => {
@@ -694,6 +697,40 @@ export const FilePage = () => {
                 disabled={selectedUsers.length === 0}
               >
                 Udostępnij ({selectedUsers.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && fileToDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="login-box rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              Usuń plik
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Czy na pewno chcesz usunąć plik <span className="font-semibold text-slate-900 dark:text-slate-100">"{fileToDelete.filename}"</span>?
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              Plik zostanie również usunięty u znajomych, którym został udostępniony.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmModal(false);
+                  setFileToDelete(null);
+                }}
+                className="flex-1 log-in-e py-2 bg-gray-500 hover:bg-gray-600"
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={confirmDeleteFile}
+                className="flex-1 log-in py-2 font-medium bg-red-600 hover:bg-red-700"
+              >
+                Usuń
               </button>
             </div>
           </div>

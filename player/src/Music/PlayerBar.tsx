@@ -1,5 +1,6 @@
 import { useMusicContext } from './MusicContext';
 import ReactPlayer from 'react-player';
+import { useState } from 'react';
 import {
   XMarkIcon,
   PlayIcon,
@@ -20,12 +21,70 @@ export const PlayerBar = () => {
     handlePreviousSong,
     handleSongEnded,
     getYouTubeThumbnail,
+    currentTime,
+    duration,
+    setCurrentTime,
+    setDuration,
+    handleSeek,
   } = useMusicContext();
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const formatTime = (seconds: number): string => {
+    if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    setCurrentTime(newTime);
+  };
+
+  const handleProgressMouseUp = (e: React.MouseEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    const newTime = parseFloat(target.value);
+    handleSeek(newTime);
+    setIsDragging(false);
+  };
+
+  const handleProgressMouseDown = () => {
+    setIsDragging(true);
+  };
 
   if (!currentSong) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 music-box border-t border-slate-700 p-2 z-50">
+      {/* Progress bar */}
+      <div className="container mx-auto mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 min-w-[40px]">{formatTime(isDragging ? currentTime : currentTime)}</span>
+          <input
+            type="range"
+            min="0"
+            max={duration || 0}
+            value={isDragging ? currentTime : currentTime}
+            onChange={handleProgressChange}
+            onMouseDown={handleProgressMouseDown}
+            onMouseUp={handleProgressMouseUp}
+            onTouchStart={handleProgressMouseDown}
+            onTouchEnd={handleProgressMouseUp}
+            className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500"
+            style={{
+              background: `linear-gradient(to right, rgb(249, 115, 22) 0%, rgb(249, 115, 22) ${duration ? (currentTime / duration) * 100 : 0}%, rgb(55, 65, 81) ${duration ? (currentTime / duration) * 100 : 0}%, rgb(55, 65, 81) 100%)`
+            }}
+          />
+          <span className="text-xs text-slate-400 min-w-[40px] text-right">{formatTime(duration)}</span>
+        </div>
+      </div>
+
       <div className="container mx-auto flex items-center gap-2">
         <div className="w-12 h-12 bg-slate-700 rounded overflow-hidden flex-shrink-0">
           <img 
@@ -83,7 +142,13 @@ export const PlayerBar = () => {
           controls={false} 
           width="0" 
           height="0" 
-          onEnded={handleSongEnded} 
+          onEnded={handleSongEnded}
+          onProgress={(state) => {
+            if (!isDragging) {
+              setCurrentTime(state.played * (duration || 1));
+            }
+          }}
+          onDuration={(dur) => setDuration(dur)}
         />
       </div>
     </div>

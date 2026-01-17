@@ -38,6 +38,11 @@ type MusicContextType = {
   handleSongEnded: () => void;
   getYouTubeThumbnail: (url: string) => string;
   canAddSongs: (folder: MusicFolder) => boolean;
+  currentTime: number;
+  duration: number;
+  setCurrentTime: (time: number) => void;
+  setDuration: (duration: number) => void;
+  handleSeek: (time: number) => void;
 };
 
 const MusicContext = createContext<MusicContextType | undefined>(undefined);
@@ -45,6 +50,8 @@ const MusicContext = createContext<MusicContextType | undefined>(undefined);
 export const MusicContextProvider = ({ children }: { children: ReactNode }) => {
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const playerRef = useRef<ReactPlayer>(null);
 
   const [folders, setFolders] = useState<MusicFolder[]>([
@@ -119,6 +126,13 @@ export const MusicContextProvider = ({ children }: { children: ReactNode }) => {
     return folder.type === 'playlist' || folder.type === 'local';
   };
 
+  const handleSeek = (time: number) => {
+    setCurrentTime(time);
+    if (playerRef.current) {
+      playerRef.current.seekTo(time, 'seconds');
+    }
+  };
+
   return (
     <MusicContext.Provider
       value={{
@@ -139,6 +153,11 @@ export const MusicContextProvider = ({ children }: { children: ReactNode }) => {
         handleSongEnded,
         getYouTubeThumbnail,
         canAddSongs,
+        currentTime,
+        duration,
+        setCurrentTime,
+        setDuration,
+        handleSeek,
       }}
     >
       {children}

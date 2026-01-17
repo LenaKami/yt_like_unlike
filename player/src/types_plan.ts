@@ -5,11 +5,12 @@ export const validationSchema = z
     taskname: z
       .string()
       .min(1, 'Wprowadź nazwę zadania')
-      .min(7, 'Muszą być co najmniej 7 znaki'),
+      .min(7, 'Muszą być co najmniej 7 znaki').max(20, 'Maksymalnie 20 znaków'),
     dataaa: z.string().min(1, 'Wybierz datę'),
     startg: z.string().min(1, 'Wprowadź godzinę rozpoczęcia'),
     endg: z.string().min(1, 'Wprowadź godzinę zakończenia'),
-    playlist: z.string().min(1, 'Wybierz playlistę')
+    playlist: z.string().min(1, 'Wybierz playlistę'),
+    material: z.string().optional()
   })
   .refine((data) => {
     if (!data.startg || !data.endg) return true; // jeśli nie ma godzin, nie walidujemy

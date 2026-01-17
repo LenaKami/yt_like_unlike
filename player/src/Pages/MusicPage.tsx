@@ -71,6 +71,7 @@ export const MusicPage = () => {
             }
           } catch (e) {
             console.error('getUserPlaylists', e);
+            showToast('Błąd podczas pobierania playlist', 'error', 3000);
           }
         }
 
@@ -487,6 +488,7 @@ export const MusicPage = () => {
                           setSongs(mapped);
                         } catch (e) {
                           console.error('getPlaylistSongs', e);
+                          showToast('Błąd podczas pobierania piosenek z playlisty', 'error', 3000);
                           setSongs([]);
                         }
                         setSelectedFolder(folder);

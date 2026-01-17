@@ -4,13 +4,14 @@ import { Input} from "../ui"
 import {useForm, type SubmitHandler} from "react-hook-form"
 import {type RegistrationFormData, validationSchema} from "./types_player"
 import {zodResolver} from '@hookform/resolvers/zod'
+import { useToast } from '../Toast/ToastContext';
 
 export const AddPlayerYT = () => {
 
+  const { showToast } = useToast();
   const classinput =  "input-color border border-gray-300 text-white sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 border-gray-600 placeholder-gray-400 focus:ring-slate-500 focus:border-slate-500";
    const classlabel = "block mb-2 text-sm font-medium text-white"
     const [url, setUrl] = useState('');
-    const [message, setMessage] = useState('');
     const {register, handleSubmit, formState:{errors }} = useForm<RegistrationFormData>({
     resolver: zodResolver(validationSchema)
     })
@@ -23,7 +24,8 @@ export const AddPlayerYT = () => {
     //         if (!token) {
     //             throw new Error('JWT token not found in localStorage');
     //         }
-    const response = await fetch('http://localhost:5000/player/add', {
+    try {
+      const response = await fetch('http://localhost:5000/player/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,13 +37,16 @@ export const AddPlayerYT = () => {
 
       const dataa = await response.json();
       if (response.ok) {
-        setMessage(`Success: ${dataa.message}`);
+        showToast(`Success: ${dataa.message}`, 'success', 3000);
+        setUrl(data.linkyt);
       } else {
-        setMessage(`Error: ${dataa.message}`);
+        showToast(`Error: ${dataa.message}`, 'error', 3000);
       }
-      setUrl(data.linkyt)
-
-    };
+    } catch (error) {
+      showToast('Błąd podczas dodawania odtwarzacza', 'error', 3000);
+      console.error(error);
+    }
+  };
 
   return (
     <div className="login-box">
@@ -63,7 +68,6 @@ export const AddPlayerYT = () => {
         <button type="submit" style={{ padding: '10px 20px' }} className='log-in'>Odtwórz</button>
         </div>
         </form>
-        {message && <p className="dark: text-green-200">{message} </p>}
         {url && (
           <div className="player-wrapper">
             <ReactPlayer
