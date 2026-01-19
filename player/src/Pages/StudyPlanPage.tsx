@@ -567,7 +567,7 @@ setMaterial('');
 
 
   return (
-    <div className="login-box container mx-auto p-4">
+    <div className="login-box container mx-auto p-4 pb-24 min-w-[300px] md:min-w-full">
       <div className="flex items-center gap-2 mb-4">
         <h1 className="text-2xl font-bold">Plan nauki</h1>
         <div className="group relative">

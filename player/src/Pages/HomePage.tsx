@@ -384,7 +384,7 @@ export const HomePage = () => {
 
 
   return (
-    <div className="login-box container mx-auto p-4">
+    <div className="login-box container mx-auto p-4 pb-24 min-w-[300px] md:min-w-full">
       <h1 className="text-2xl font-bold mb-4 text-slate-900 dark:text-slate-100">Start</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

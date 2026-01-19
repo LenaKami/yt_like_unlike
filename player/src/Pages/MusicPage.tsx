@@ -446,7 +446,7 @@ export const MusicPage = () => {
 
   /** RENDER: MAIN FOLDER VIEW */
   return (
-    <div className="login-box container mx-auto p-4 pb-24">
+    <div className="login-box container mx-auto p-4 pb-24 min-w-[400px] md:min-w-full">
       <div className="flex items-center gap-2 mb-4">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Muzyka</h1>
         <div className="group relative">
@@ -459,7 +459,7 @@ export const MusicPage = () => {
       </div>
 
         <div className="login-box p-6 rounded shadow">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {folders
               .slice()
               .sort((a, b) => {

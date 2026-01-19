@@ -257,7 +257,7 @@ export const FriendsPage = () => {
 
 
   return (
-    <div className="login-box container mx-auto p-4">
+    <div className="login-box container mx-auto p-4 pb-24 min-w-[500px] md:min-w-full">
       <div className="grid grid-cols-3 items-center mb-4">
         <div /> {/* lewa kolumna – pusta, dla równowagi świata */}
 
